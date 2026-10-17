@@ -30,7 +30,7 @@ class SatellitesFlightReader:
         self.__logger.info(f"get satellite flights from API, id: {sat_id} ")
         try:
             return response.json()["passes"]
-        except:
+        except (KeyError, ValueError):
             return []
 
     def __get_satellites_flights(self, sat_id):

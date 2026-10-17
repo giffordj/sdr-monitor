@@ -8,6 +8,14 @@ Gain test - {{ name }}
 {% endblock %}
 
 {% block section_content %}
+<div class="mb-2 d-flex gap-2">
+    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="history.back()"><i class="bi bi-arrow-left me-1"></i>Back</button>
+    <a href="{% url 'sdr_gain_tests' %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-list-ul me-1"></i>All gain tests</a>
+    <form action="{% url 'sdr_delete_gain_test' gain_test_id %}" method="post" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this gain test? This cannot be undone.');"><i class="bi bi-trash me-1"></i>Delete</button>
+    </form>
+</div>
 <div class="row">
     <h3 class="text-center"> {{ begin_real_date }} - {{ end_real_date }} </h3>
     <div id="scrollable-main-image" class="horizontal dragscroll" style="overflow-x: auto;">

@@ -1,8 +1,13 @@
-.vscode
-*.mo
-*.pyc
-cache
-data
-patches
-static/libs
-tools
+__pycache__/
+*.py[cod]
+
+# Runtime data / generated artifacts
+/data/
+/log/
+/cache/
+*.sqlite3
+*.db
+
+# Local scratch
+prompt.txt
+sdr*.jpg

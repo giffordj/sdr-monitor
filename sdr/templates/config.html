@@ -10,23 +10,6 @@
 {% endblock %}
 
 {% block section_content %}
-<div class="modal fade" id="save_success" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="exampleModalLabel">Configuration</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                Save success!
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Ok</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="modal modal-lg fade" id="preview_flights" tabindex="-1" aria-labelledby="previewFlightsModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -43,35 +26,34 @@
     </div>
 </div>
 
-<div id="config" style="display: none;" mqtt_url="{{ mqtt.url }}" mqtt_user="{{ mqtt.user }}" mqtt_password="{{ mqtt.password }}" mqtt_frontend_path="{{ mqtt.frontend_path }}">
-</div>
-<div class="row mt-2">
+{% csrf_token %}
+<div id="toast_container" class="toast-container position-fixed top-0 end-0 p-3"></div>
+<div id="config" data-api-url="{% url 'sdr_api_config' %}"></div>
+<div id="scanner_status_banner" class="mb-2"></div>
+<div class="row mt-2" id="config_page">
     <div class="row" id="loading_section">
-        <div class="text-center">
+        <div class="text-center py-4">
             <div class="spinner-border" role="status">
             </div>
-            <div>
-                <span class="sr-only">Loading...</span>
-            </div>
+            <div class="mt-2 text-muted">Loading scanner configuration...</div>
         </div>
     </div>
-    <div class="row">
-        <div class="col-md-5">
-            <h3>Scanner settings:</h3>
-            <div id="scanner_selector">
+    <ul class="nav nav-tabs mt-3" id="config_tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#scanner_pane" type="button" role="tab">Scanner settings</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#device_pane" type="button" role="tab">SDR device settings</button>
+        </li>
+    </ul>
+    <div class="tab-content">
+        <div class="tab-pane show active" id="scanner_pane" role="tabpanel">
+            <div class="mt-3">
+                <h5>Scanner</h5>
+                <div id="scanner_selector"></div>
             </div>
-        </div>
-        <div class="col-md-7">
-            <h3>Sdr device settings:</h3>
-            <div id="device_selector">
-            </div>
-        </div>
-    </div>
-    <hr class="hr hr-blurry" />
-    <div class="row">
-        <div class="col-md-5">
-            <div id="scanner_section" style="display: none;">
-                <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <div id="scanner_section" class="mt-3">
+                <ul class="nav nav-tabs" id="scanner_tabs" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#scanner-tab1" type="button" role="tab">Ignored frequencies</button>
                     </li>
@@ -96,14 +78,18 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-7">
-            <div id="device_section" style="display: none;">
+        <div class="tab-pane" id="device_pane" role="tabpanel">
+            <div class="mt-3">
+                <h5>SDR device</h5>
+                <div id="device_selector"></div>
+            </div>
+            <div id="device_section" class="mt-3">
                 <h5>Device enabled</h5>
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" id="device_enabled" autocomplete="off">
                 </div>
                 <div id="device_settings">
-                    <ul class="nav nav-tabs" id="myTab" role="tablist">
+                    <ul class="nav nav-tabs" id="device_tabs" role="tablist">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#device-tab-detector" type="button" role="tab">Detector</button>
                         </li>

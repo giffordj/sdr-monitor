@@ -1,4 +1,3 @@
-from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import F
 from django.utils import timezone
 from django.utils.timezone import make_aware
@@ -16,13 +15,19 @@ import sdr.utils.group
 class TransmissionReader:
     def __init__(self):
         self.__logger = logging.getLogger("Transmission")
-        self.__regex = re.compile("sdr/transmission/\\w+/([\\w\\.]+)")
+        # See spectogram_reader.py: the device part is an alias that may
+        # contain spaces and slashes, so capture the whole remainder.
+        self.__regex = re.compile("sdr/transmission/\\w+/(.+)")
 
     def get_device(self, name):
-        try:
-            return Device.objects.get(raw_name=name)
-        except ObjectDoesNotExist:
-            return Device.objects.create(name=sdr.utils.device.convert_raw_to_name_to_pretty_name(name), raw_name=name)
+        # See spectogram_reader.py: keep the display name in sync with the
+        # scanner alias so panel and scanner config agree.
+        pretty = sdr.utils.device.convert_raw_to_name_to_pretty_name(name)
+        device, created = Device.objects.get_or_create(raw_name=name, defaults={"name": pretty})
+        if not created and device.name != pretty:
+            Device.objects.filter(id=device.id).update(name=pretty)
+            device.name = pretty
+        return device
 
     def append_transmission(self, device, dt, begin_frequency, end_frequency, samples, sample_size, modulation, sample_type, source, name):
         device = self.get_device(device)
@@ -41,7 +46,7 @@ class TransmissionReader:
                     .filter(begin_frequency__lte=frequency, end_frequency__gte=frequency)[0]
                     .id
                 )
-        except:
+        except Exception:
             group_id = get_default_group_id()
         try:
             t = Transmission.objects.get(
@@ -53,9 +58,10 @@ class TransmissionReader:
                 sample_size=sample_size,
                 data_type=sample_type,
                 group_id=group_id,
-                source=source,
             )
             t.end_date = dt
+            if t.source != source:
+                t.source = source
         except Transmission.DoesNotExist:
             dir = "device_%d/transmission" % device.id
             (filename, filename_full) = sdr.utils.file.get_filename(dir, dt, "%s_%d_%s.bin" % (dt.strftime("%H_%M_%S"), (begin_frequency + end_frequency) // 2, sample_type), True)
@@ -85,6 +91,10 @@ class TransmissionReader:
             message = json.loads(message.payload.decode("utf-8"))
             data = bytearray(b ^ 0x80 for b in base64.b64decode(message["data"]))
             source = message["source"]
+            # See spectogram_reader.py: the upstream scanner hard-codes
+            # "gain tester" as its source label; store real data as "scanner".
+            if source == "gain tester":
+                source = "scanner"
             name = message["name"]
             frequency = message["frequency"]
             bandwidth = message["bandwidth"]

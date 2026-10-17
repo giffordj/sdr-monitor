@@ -1,9 +1,17 @@
+import sdr.api
 import sdr.views
 from django.urls import path
 
 urlpatterns = [
     path("config/", sdr.views.config, name="sdr_config"),
+    path("radio/", sdr.views.radio, name="sdr_radio"),
+    path("scanning_status/", sdr.views.scanning_status, name="sdr_scanning_status"),
+    path("api/config/", sdr.api.config, name="sdr_api_config"),
+    path("api/radio/", sdr.api.radio, name="sdr_api_radio"),
+    path("api/radio/stream/", sdr.api.radio_stream, name="sdr_api_radio_stream"),
+    path("api/scanner/", sdr.api.scanner, name="sdr_api_scanner"),
     path("group/add/", sdr.views.add_group, name="sdr_add_group"),
+    path("group/edit/<int:group_id>/", sdr.views.edit_group, name="sdr_edit_group"),
     path("group/delete/<int:group_id>/", sdr.views.delete_group, name="sdr_delete_group"),
     path("groups/", sdr.views.groups, name="sdr_groups"),
     path("logs/", sdr.views.logs, name="sdr_logs"),
@@ -14,10 +22,18 @@ urlpatterns = [
     path("spectrogram/<int:spectrogram_id>/data/", sdr.views.spectrogram_data, name="sdr_spectrogram_data"),
     path("spectrograms/", sdr.views.spectrograms, name="sdr_spectrograms"),
     path("transmission/<int:transmission_id>/", sdr.views.transmission, name="sdr_transmission"),
+    path("transmission/delete/<int:transmission_id>/", sdr.views.delete_transmission, name="sdr_delete_transmission"),
+    path("transmission/delete/class/", sdr.views.delete_transmissions_by_class, name="sdr_delete_transmissions_by_class"),
+    path("transmissions/delete/all/", sdr.views.delete_all_transmissions, name="sdr_delete_all_transmissions"),
+    path("spectrogram/delete/<int:spectrogram_id>/", sdr.views.delete_spectrogram, name="sdr_delete_spectrogram"),
+    path("spectrograms/delete/all/", sdr.views.delete_all_spectrograms, name="sdr_delete_all_spectrograms"),
+    path("spectrograms/keep/", sdr.views.update_spectrograms_keep_count, name="sdr_update_spectrograms_keep_count"),
     path("transmission/<int:transmission_id>/data/", sdr.views.transmission_data, name="sdr_transmission_data"),
     path("transmissions/", sdr.views.transmissions, name="sdr_transmissions"),
     path("gain_tester/", sdr.views.gain_tester, name="sdr_gain_tester"),
     path("gain_tests/", sdr.views.gain_tests, name="sdr_gain_tests"),
     path("gain_test/<int:gain_test_id>/", sdr.views.gain_test, name="sdr_gain_test"),
+    path("gain_test/delete/<int:gain_test_id>/", sdr.views.delete_gain_test, name="sdr_delete_gain_test"),
     path("settings/", sdr.views.settings, name="sdr_settings"),
+    path("keep-rules/", sdr.views.keep_rules, name="sdr_keep_rules"),
 ]

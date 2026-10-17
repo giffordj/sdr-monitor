@@ -73,18 +73,31 @@ function runDevice(scanner, device, callback) {
     });
 }
 
+function scannerLabel(scanner) {
+    // Identify a scanner by its devices ("NESDR VHF/UHF + Blog V4 HF") - the
+    // raw scanner id is generated per container start and means nothing to a
+    // human.
+    const devices = (scanners[scanner] || {})['devices'] || [];
+    const names = devices.map(function (device) {
+        return device['alias'] || device['driver'] + "_" + device['serial'];
+    }).filter(function (name) { return name; });
+    return names.length ? names.join(" + ") : "scanner #" + scanner;
+}
+
 function addScanner(scanner) {
-    addSelectOption('#scanner', scanner);
+    addSelectOption('#scanner', scanner, scannerLabel(scanner));
     $("#scanner").val('default');
 }
 
 function selectScanner(scanner) {
     $("#device").unbind("change");
     clearDevices();
-    scanners[scanner]['devices'].forEach((device) => addSelectOption('#device', device['driver'] + "_" + device['serial']));
+    scanners[scanner]['devices'].forEach((device) => addSelectOption('#device',
+        device['driver'] + "_" + device['serial'],
+        device['alias'] || device['driver'] + "_" + device['serial']));
     $('#device').on('change', function () {
         $("#device option:selected").each(function () {
-            selectDevice(scanner, $(this).text());
+            selectDevice(scanner, $(this).val());
         });
     });
     $("#device").val('default');

@@ -20,7 +20,9 @@ class ClassifierController(threading.Thread):
         while self.__is_working:
             self.__logger.debug("processing")
             cut_dt = timezone.now() - timezone.timedelta(seconds=10)
-            for t in Transmission.objects.filter(end_date__lt=cut_dt, audio_class_id=default_audio_class_id).order_by("begin_date").all():
+            # Materialize the list: update() may auto-delete noise transmissions, and
+            # deleting rows while iterating a queryset can skip records.
+            for t in list(Transmission.objects.filter(end_date__lt=cut_dt, audio_class_id=default_audio_class_id).order_by("begin_date")):
                 if t.group.modulation in ["FM", "AM"]:
                     self.__sound_classifier.update(t)
                 if not self.__is_working:

@@ -26,21 +26,51 @@ Spectrogram - {{ spectrogram.frequency | frequency }} - {{ spectrogram.sample_ra
 {% endblock %}
 
 {% block section_content %}
-<div class="row mt-2">
-    <div class="col-12">
-        <h3>Spectrogram range: {{ spectrogram.begin_real_date }} - {{ spectrogram.end_real_date }}
-            ({{ spectrogram.duration }})</h3>
-        <h3>Spectrogram samples count: {{ spectrogram.samples | big_number }} </h3>
-        <h3>Spectrogram frequency: {{ spectrogram.frequency | frequency }} </h3>
-        <h3>Spectrogram sample rate: {{ spectrogram.sample_rate | frequency}} </h3>
-        <h3>Spectrogram step: {{ spectrogram.step_frequency | frequency}} </h3>
-        <h3>Device: {{ spectrogram.device.name }} </h3>
-        <h3>Raw file size: {{ spectrogram.data_file.size | natural_size }}</h3>
+<div class="mb-2 d-flex gap-2">
+    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="history.back()"><i class="bi bi-arrow-left me-1"></i>Back</button>
+    <a href="{% url 'sdr_spectrograms' %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-list-ul me-1"></i>All spectrograms</a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="text-muted small">Range</div>
+                <div>{{ spectrogram.begin_real_date|date:"Y-m-d H:i:s" }} &rarr; {{ spectrogram.end_real_date|date:"Y-m-d H:i:s" }} ({{ spectrogram.duration }})</div>
+            </div>
+            <div class="col-md-6">
+                <div class="text-muted small">Samples count</div>
+                <div>{{ spectrogram.samples | big_number }}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-muted small">Frequency</div>
+                <div>{{ spectrogram.frequency | frequency }}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-muted small">Sample rate</div>
+                <div>{{ spectrogram.sample_rate | frequency }}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-muted small">Step</div>
+                <div>{{ spectrogram.step_frequency | frequency }}</div>
+            </div>
+            <div class="col-md-6">
+                <div class="text-muted small">Device</div>
+                <div>{{ spectrogram.device.name }}</div>
+            </div>
+            <div class="col-md-6">
+                <div class="text-muted small">Raw file size</div>
+                <div>{{ spectrogram.data_file.size | natural_size }}</div>
+            </div>
+        </div>
     </div>
-    <div class="col-12">
-        <a href="{% url 'sdr_spectrogram_data' spectrogram.id %}?format=raw" class="btn btn-primary" download>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body d-flex flex-wrap gap-2">
+        <a href="{% url 'sdr_spectrogram_data' spectrogram.id %}?format=raw" class="btn btn-sm btn-primary" download>
             raw data</a>
-        <a href="{% url 'sdr_spectrogram_data' spectrogram.id %}?format=image" class="btn btn-primary" download>image</a>
+        <a href="{% url 'sdr_spectrogram_data' spectrogram.id %}?format=image" class="btn btn-sm btn-primary" download>image</a>
     </div>
 </div>
 <div class="row mt-2">

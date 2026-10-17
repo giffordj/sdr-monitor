@@ -16,7 +16,24 @@ MEDIA_URL = os.getenv("DJANGO_MEDIA_URL", "/media/")
 
 LOGIN_URL = "/account/login/"
 LOGIN_REDIRECT_URL = "/"
-LOGOUT_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = os.getenv("AUTHELIA_LOGOUT_URL", "/")
+
+AUTHENTICATION_BACKENDS = [
+    "common.auth.AutheliaBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
+AUTHELIA_AUTH_ENABLED = str_to_bool(os.getenv("AUTHELIA_AUTH_ENABLED", "0"))
+AUTHELIA_USER_HEADER = os.getenv("AUTHELIA_USER_HEADER", "HTTP_REMOTE_USER")
+AUTHELIA_GROUPS_HEADER = os.getenv("AUTHELIA_GROUPS_HEADER", "HTTP_REMOTE_GROUPS")
+AUTHELIA_EMAIL_HEADER = os.getenv("AUTHELIA_EMAIL_HEADER", "HTTP_REMOTE_EMAIL")
+AUTHELIA_NAME_HEADER = os.getenv("AUTHELIA_NAME_HEADER", "HTTP_REMOTE_NAME")
+AUTHELIA_ADMIN_GROUPS = [group.strip() for group in os.getenv("AUTHELIA_ADMIN_GROUPS", "admin").split(",") if group.strip()]
+AUTHELIA_TRUSTED_PROXIES = [proxy.strip() for proxy in os.getenv("AUTHELIA_TRUSTED_PROXIES", "").split(",") if proxy.strip()]
+# When enabled, any user authenticated by Authelia is granted staff/superuser
+# access regardless of the Remote-Groups header. Useful when the reverse proxy
+# does not forward groups and the site is already gated by Authelia.
+AUTHELIA_ALL_STAFF = str_to_bool(os.getenv("AUTHELIA_ALL_STAFF", "0"))
 
 with open(os.path.join(BASE_DIR, "logging.json"), "r") as f:
     LOGGING = json.load(f)
@@ -49,6 +66,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "common.auth.AutheliaMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]

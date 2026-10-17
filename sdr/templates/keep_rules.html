@@ -1,0 +1,54 @@
+{% extends "generic/section_dialog.html" %}
+{% load i18n %}
+
+{% block section_title %}Retention{% endblock %}
+
+{% block section_content %}
+<form method="post">
+    {% csrf_token %}
+
+    <h5>Auto-delete noise</h5>
+    <div class="form-check mb-2">
+        <input class="form-check-input" type="checkbox" name="auto_delete_noise" id="auto_delete_noise"
+               {% if auto_delete_noise %}checked{% endif %}>
+        <label class="form-check-label" for="auto_delete_noise">
+            Automatically delete transmissions classified as noise (recording and database entry).
+        </label>
+    </div>
+    <div class="mb-4">
+        <label class="form-label" for="auto_delete_noise_labels">Noise classes</label>
+        <input type="text" class="form-control" id="auto_delete_noise_labels" name="auto_delete_noise_labels"
+               value="{{ auto_delete_noise_labels }}" placeholder="Noise">
+        <div class="form-text">Comma-separated class names to auto-delete, e.g. <code>Noise</code>. Only used when auto-delete is enabled.</div>
+    </div>
+
+    <h5>Keep rules</h5>
+    <p class="text-muted">
+        A transmission of a listed class is kept and never auto-deleted when its
+        duration is longer than the given number of seconds. Leave a class blank to
+        disable its rule. These override both the noise auto-delete and the size cap.
+    </p>
+    <div class="row fw-bold mb-1">
+        <div class="col-7">Class</div>
+        <div class="col-5">Keep if longer than (s)</div>
+    </div>
+    {% for row in rows %}
+    <div class="row mb-2 align-items-center">
+        <div class="col-7">
+            {{ row.name }}
+            <input type="hidden" name="name_{{ forloop.counter0 }}" value="{{ row.name }}">
+        </div>
+        <div class="col-5">
+            <input type="number" min="0" step="1" class="form-control"
+                   name="seconds_{{ forloop.counter0 }}" value="{{ row.seconds }}">
+        </div>
+    </div>
+    {% empty %}
+    <p class="text-muted">No audio classes yet &mdash; they appear here once the scanner classifies transmissions.</p>
+    {% endfor %}
+
+    <div class="text-center mt-3">
+        <button class="btn btn-primary" type="submit">Save</button>
+    </div>
+</form>
+{% endblock %}

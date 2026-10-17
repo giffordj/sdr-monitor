@@ -1,49 +1,42 @@
-# Introduction
+# SDR Monitor (fork)
 
-This project is part of a larger `SDR` project called [https://github.com/shajen/sdr-hub](https://github.com/shajen/sdr-hub). Please familiar with it before starting work.
+**Our fork of [shajen/sdr-monitor](https://github.com/shajen/sdr-monitor)** — the
+Django web panel used by the `sdr-hub` SDR stack (C++ GNU Radio scanner +
+web UI for RTL-SDR dongles). Published for credit and reuse; see
+[CHANGELOG.md](CHANGELOG.md) for what differs from upstream.
 
-Sdr monitr is responsible for saving and decoding data received from [https://github.com/shajen/rtl-sdr-scanner-cpp](https://github.com/shajen/rtl-sdr-scanner-cpp). It allows easy access to data via web panel. It is also responsible for decoding raw data into wav files. For now, it supports `FM` and `AM` modulations.
+## Highlights of this fork
 
-# AI
+- **Scanning status page** — per-device liveness (scanner state, last ingest,
+  last transmission) built on a worker-refreshed status cache, so pages render
+  in milliseconds instead of waiting ~2.4 s on an MQTT round-trip.
+- **Cached spectrogram images** — rendered once per data version instead of on
+  every request (previously ~0.5 s CPU and 2 MB per row view), with automatic
+  invalidation as new data lands and pruning by the cleaner.
+- **Live shortwave radio** — server-side `RadioController` (`rtl_fm` + `lame`),
+  per-listening dongle selection with **pause-and-borrow** (the scanner releases
+  the chosen dongle live over MQTT and gets it back on stop), and a
+  Hallicrafters S-120-inspired face (slide-rule dial with band markers,
+  tuning/volume/bandspread/B.F.O. knobs, receive rocker, digital readout,
+  S-meter).
+- **Smaller fixes** — delete option for gain tests, device names kept in sync
+  with scanner aliases, alias-safe MQTT topics (spaces/slashes), stale
+  gain-test sweep on reconnect, retention/list fixes.
 
-It uses `AI` model from [https://www.tensorflow.org/lite/inference_with_metadata/task_library/audio_classifier](https://www.tensorflow.org/lite/inference_with_metadata/task_library/audio_classifier) to classify whether a transmission is speech or noise.
+## Upstream credit
 
-# Quickstart
+All original design and the vast majority of the code are by **shajen**:
+<https://github.com/shajen/sdr-monitor> and <https://github.com/shajen/sdr-hub>.
+See [CREDITS.md](CREDITS.md).
 
-Instructions [here](https://github.com/shajen/sdr-hub?tab=readme-ov-file#quickstart).
+## License
 
-# Build from sources
+GPL-3.0, same as upstream — see [LICENSE](LICENSE).
 
-Clone repository (**do not forget to sync submodules!**) and run:
+## Running it
 
-```
-docker build -t shajen/sdr-monitor .
-```
-
-# Contributing
-
-In general don't be afraid to send pull request. Use the "fork-and-pull" Git workflow.
-
-1. **Fork** the repo
-2. **Clone** the project to your own machine
-3. **Commit** changes to your own branch
-4. **Push** your work back up to your fork
-5. Submit a **Pull request** so that we can review your changes
-
-NOTE: Be sure to merge the **latest** from **upstream** before making a pull request!
-
-# Donations
-
-If you enjoy this project and want to thanks, please use follow link:
-
-- [PayPal](https://www.paypal.com/donate/?hosted_button_id=6JQ963AU688QN)
-
-- [Revolut](https://revolut.me/borysm2b)
-
-- BTC address: 18UDYg9mu26K2E3U479eMvMZXPDpswR7Jn
-
-# License
-
-[![License](https://img.shields.io/:license-GPLv3-blue.svg?style=flat-square)](https://www.gnu.org/licenses/gpl.html)
-
-- *[GPLv3 license](https://www.gnu.org/licenses/gpl.html)*
+This repository is the **web panel only**. It runs on top of the `sdr-hub`
+container image (nginx, supervisord, gnuradio, scanner, mosquitto) by
+replacing `/app` — see the pinned `SDR_HUB_IMAGE` in the `Dockerfile`.
+Configuration is environment-driven (MQTT broker, database, Authelia SSO);
+see `monitor/settings.py`.

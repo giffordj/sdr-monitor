@@ -1,4 +1,3 @@
-from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 from django.utils.timezone import make_aware
 from humanize import naturalsize
@@ -15,13 +14,23 @@ import sdr.utils.file
 class SpectrogramReader:
     def __init__(self):
         self.__logger = logging.getLogger("Spectrogram")
-        self.__regex = re.compile("sdr/spectrogram/\\w+/([\\w\\.]+)")
+        # The device part is the scanner's alias, which may contain spaces and
+        # even slashes ("NESDR VHF/UHF", "Blog V4 HF"). Capture the whole
+        # remainder: the old [\w\.]+ truncated at the first space, so "Blog
+        # V4 HF" was stored as device "Blog" (2026-10-15).
+        self.__regex = re.compile("sdr/spectrogram/\\w+/(.+)")
 
     def get_device(self, name):
-        try:
-            return Device.objects.get(raw_name=name)
-        except ObjectDoesNotExist:
-            return Device.objects.create(name=sdr.utils.device.convert_raw_to_name_to_pretty_name(name), raw_name=name)
+        # The scanner alias (raw_name) is the source of truth. Keep the display
+        # name in sync so the panel's device list lines up with Settings >
+        # Scanner (a stale row kept the old truncated name "Blog" after the
+        # alias fix, so the devices looked unassociated).
+        pretty = sdr.utils.device.convert_raw_to_name_to_pretty_name(name)
+        device, created = Device.objects.get_or_create(raw_name=name, defaults={"name": pretty})
+        if not created and device.name != pretty:
+            Device.objects.filter(id=device.id).update(name=pretty)
+            device.name = pretty
+        return device
 
     def round_down_date(self, date):
         return date.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -40,6 +49,10 @@ class SpectrogramReader:
         end_model_date = self.round_up_date(dt)
         device = self.get_device(device)
         try:
+            # Match the model's unique_together exactly - it does not include
+            # source. Filtering on source made rows written under the previous
+            # label invisible and the insert below then collided with the
+            # unique index (IntegrityError, silent data loss - 2026-10-15).
             s = Spectrogram.objects.get(
                 device=device,
                 begin_frequency=begin_frequency,
@@ -47,8 +60,9 @@ class SpectrogramReader:
                 step_frequency=step_frequency,
                 begin_model_date=begin_model_date,
                 end_model_date=end_model_date,
-                source=source,
             )
+            if s.source != source:
+                s.source = source
         except Spectrogram.DoesNotExist:
             f = (begin_frequency + end_frequency) // 2
             dir = "device_%d/spectrogram" % device.id
@@ -81,6 +95,14 @@ class SpectrogramReader:
             message = json.loads(message.payload.decode("utf-8"))
             data = base64.b64decode(message["data"])
             source = message["source"]
+            # The upstream scanner hard-codes "gain tester" as its source label
+            # (the string is baked into /usr/bin/auto_sdr and cannot be
+            # overridden through the config or CLI). The panel hides that
+            # source unless the "gain tester data" setting is on, which hid
+            # every live detection for days (2026-10-15). Store real scanner
+            # data under a sane name instead.
+            if source == "gain tester":
+                source = "scanner"
             frequency = message["frequency"]
             sample_rate = message["sample_rate"]
             begin_frequency = frequency - sample_rate // 2

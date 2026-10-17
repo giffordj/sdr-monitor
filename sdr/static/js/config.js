@@ -1,70 +1,247 @@
+// Scanner configuration UI.
+//
+// Configuration is loaded and saved through the Django API
+// (/sdr/api/config/) - the browser no longer connects to the MQTT broker, so
+// no broker credentials are exposed and the page is usable while the scanner
+// is offline (it then edits the saved config file).
 var scanners = {};
+// Frequencies/bandwidths are Hz on the wire (the scanner expects Hz) but are
+// shown and entered as MHz in the UI.
+var MHZ = 1000000;
+// The scanner splits every scanned range into ~1 MHz windows and builds a full
+// GNU Radio processing chain per window (rtl-sdr-scanner-cpp splitRanges()).
+// Too many windows overload the SDR/USB and make auto_sdr overflow or SIGSEGV,
+// so warn before saving a configuration that would build a lot of processors.
+var MAX_SCAN_PROCESSORS = 35;
+
+var apiUrl = null;
+var selectedScannerId = null;
+var dirty = false;
 
 $(document).ready(function () {
-    if ($('#config').attr('mqtt_frontend_path')) {
-        connect((window.location.protocol == 'http:' ? 'ws://' : 'wss://') + window.location.host + $('#config').attr('mqtt_frontend_path'));
-    }
-    else {
-        connect($('#config').attr('mqtt_url'));
-    }
+    apiUrl = $("#config").data("api-url");
+    $("#save").click(saveConfig);
+    // Track unsaved changes for the "you have unsaved changes" guard. Scanner
+    // and device selector radios only change what is being edited, not the
+    // configuration itself, so they are ignored.
+    $("#config_page").on("change input", "input, select", function () {
+        if ($(this).is("[name=scanner_selector],[name=device_selector]")) {
+            return;
+        }
+        dirty = true;
+        updateSaveButton();
+    });
+    window.addEventListener("beforeunload", function (e) {
+        if (dirty) {
+            e.preventDefault();
+            e.returnValue = "";
+            return "";
+        }
+    });
+    loadConfig();
 });
 
-function connect(url) {
-    let client = mqtt.connect(url, { username: $('#config').attr('mqtt_user'), password: $('#config').attr('mqtt_password') });
-    client.on("message", function (topic, message) {
-        let values = topic.split("/");
-        let command = values[1];
-        let scanner_id = values[2];
-        if (command == 'status') {
+function getCookie(name) {
+    let match = document.cookie.match("(^|;)\\s*" + name + "\\s*=\\s*([^;]+)");
+    return match ? match.pop() : "";
+}
+
+function toast(message, type) {
+    let id = "toast_" + Date.now() + Math.floor(Math.random() * 1000);
+    let html =
+        '<div id="' + id + '" class="toast align-items-center text-bg-' + type + ' border-0" role="alert" aria-live="assertive" aria-atomic="true">' +
+        '<div class="d-flex"><div class="toast-body">' + message + "</div>" +
+        '<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div></div>';
+    $("#toast_container").append(html);
+    let element = document.getElementById(id);
+    let t = new bootstrap.Toast(element, {delay: type === "danger" ? 10000 : 5000});
+    t.show();
+    element.addEventListener("hidden.bs.toast", function () {
+        element.remove();
+    });
+}
+
+function updateSaveButton() {
+    $("#save").prop("disabled", !dirty || selectedScannerId === null);
+}
+
+function markClean() {
+    dirty = false;
+    $("#save").html("Save");
+    updateSaveButton();
+}
+
+function renderStatusBanner(online) {
+    let banner = $("#scanner_status_banner");
+    if (online) {
+        banner.html('<div class="alert alert-success py-2 mb-0">Scanner online &mdash; showing live settings. Changes apply immediately.</div>');
+    } else {
+        banner.html('<div class="alert alert-warning py-2 mb-0">Scanner offline &mdash; editing the saved configuration. Changes are stored and applied when the scanner next starts.</div>');
+    }
+}
+
+function loadConfig() {
+    $.ajax({url: apiUrl, dataType: "json"})
+        .done(function (data) {
             $("#loading_section").hide();
-            if (!(scanner_id in scanners)) {
-                scanners[scanner_id] = jQuery.parseJSON(new TextDecoder().decode(message));
-                addScanner(scanners[scanner_id], scanner_id);
+            renderStatusBanner(data.online);
+            let count = 0;
+            for (const [scanner_id, scanner] of Object.entries(data.scanners || {})) {
+                scanners[scanner_id] = scanner;
+                addScanner(scanner, scanner_id);
+                count += 1;
+                if (selectedScannerId === null) {
+                    $("input[name=scanner_selector]").last().prop("checked", true);
+                    selectScanner(scanner, scanner_id);
+                }
             }
+            if (count === 0) {
+                $("#scanner_selector").html('<div class="alert alert-warning mb-0">No scanner configuration found.</div>');
+            }
+            markClean();
+        })
+        .fail(function () {
+            $("#loading_section").hide();
+            $("#scanner_selector").html('<div class="alert alert-danger mb-0">Failed to load the configuration.</div>');
+        });
+}
+
+function saveConfig() {
+    let problems = scanRangeProblems();
+    if (problems.errors.length > 0) {
+        toast("Cannot save, invalid scanned ranges:<br>" + problems.errors.join("<br>"), "danger");
+        return;
+    }
+    if (problems.warnings.length > 0) {
+        if (!window.confirm("The configuration has warnings:\n\n" + problems.warnings.join("\n") + "\n\nSave anyway?")) {
+            return;
         }
-        else if (command == "config" && values[3] == "success") {
+    }
+    let scanner = scanners[selectedScannerId];
+    if (!scanner) {
+        return;
+    }
+    $("#save").prop("disabled", true).html('<span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span role="status"> Saving...</span>');
+    fetch(apiUrl, {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken")},
+        body: JSON.stringify({scanner_id: selectedScannerId, config: scanner}),
+    })
+        .then(function (response) {
+            return response.json().then(function (data) {
+                return {ok: response.ok, data: data};
+            });
+        })
+        .then(function (result) {
+            if (result.ok && result.data.success) {
+                markClean();
+                toast("Configuration saved" + (result.data.applied ? " and applied." : " (scanner offline; applied on next start)."), "success");
+            } else {
+                $("#save").html("Save");
+                updateSaveButton();
+                toast((result.data.errors || ["Failed to save the configuration."]).join("<br>"), "danger");
+            }
+        })
+        .catch(function () {
             $("#save").html("Save");
-            $('#save_success').modal('show');
-        }
-    });
-
-    client.on("connect", function () {
-        console.log("connected to " + url);
-        onConnect(client);
-    });
-    client.on("error", function () {
-        client.end();
-    });
-    client.stream.on('error', function () {
-        client.end();
-    });
+            updateSaveButton();
+            toast("Failed to save the configuration.", "danger");
+        });
 }
 
-function onConnect(client) {
-    client.subscribe("sdr/status/+");
-    client.subscribe("sdr/config/+/success");
-    client.publish("sdr/list");
-    $("#save").click(function () {
-        for (const [scanner_id, value] of Object.entries(scanners)) {
-            client.publish("sdr/config/" + scanner_id, JSON.stringify(value));
-        }
-        $("#save").html("<span class=\"spinner-border spinner-border-sm\" aria-hidden=\"true\"></span><span role=\"status\">Loading...</span>");
-    });
+// Mirrors getRangeSplitSampleRate() from the scanner, used to estimate how many
+// processing chains a configuration will create.
+function getRangeSplitSampleRate(sampleRate) {
+    let roundDown = function (value, step) {
+        return Math.floor(value / step) * step;
+    };
+    if (sampleRate >= 10000000) {
+        return roundDown(sampleRate, 1000000);
+    }
+    else if (sampleRate >= 1000000) {
+        return roundDown(sampleRate, 500000);
+    }
+    else if (sampleRate >= 100000) {
+        return roundDown(sampleRate, 100000);
+    }
+    return sampleRate;
 }
 
-function parseValue(value, type) {
-    if (type == 'string') {
-        return value;
+// Counts the split ranges the scanner will create for a device, splitting each
+// scanned range the way splitRange() does.
+function countScanProcessors(device) {
+    let split = getRangeSplitSampleRate(device['sample_rate']);
+    let result = { total: 0, invalid: [] };
+    (device['ranges'] || []).forEach(function (range, index) {
+        if (!(range['start'] < range['stop'])) {
+            result.invalid.push(index + 1);
+        }
+        else if (range['stop'] - range['start'] <= split) {
+            result.total += 1;
+        }
+        else {
+            result.total += Math.ceil((range['stop'] - range['start']) / split);
+        }
+    });
+    return result;
+}
+
+// Returns validation problems for the current scanner configurations. Invalid
+// ranges are hard errors; too many windows is a warning the user can override.
+function scanRangeProblems() {
+    let problems = { errors: [], warnings: [] };
+    for (const [scanner_id, scanner] of Object.entries(scanners)) {
+        (scanner['devices'] || []).forEach(function (device) {
+            let label = scannerLabel(scanner, scanner_id) + " (" + device['serial'] + ")";
+            // The alias becomes part of the MQTT topic the scanner publishes on
+            // (sdr/spectrogram/<scanner>/<alias>): a slash adds a topic level
+            // and spaces used to truncate the device name, both of which
+            // silently hid data until the readers were fixed (2026-10-15).
+            // The readers cope now - keep new aliases plain ("Blog-V4-HF") so
+            // every other path (scheduler, third-party tools) stays simple.
+            let alias = String(device['alias'] || "");
+            if (alias && (alias.includes("/") || /\s/.test(alias))) {
+                problems.warnings.push(label + ": alias '" + alias + "' contains spaces or slashes - prefer e.g. 'Blog-V4-HF'");
+            }
+            let counts = countScanProcessors(device);
+            if (counts.invalid.length > 0) {
+                problems.errors.push(label + ": scanned range(s) " + counts.invalid.join(", ") + " have start >= stop");
+            }
+            if (counts.total > MAX_SCAN_PROCESSORS) {
+                problems.warnings.push(label + ": " + counts.total + " scan windows (safe limit " + MAX_SCAN_PROCESSORS + ")");
+            }
+        });
     }
-    else if (type == 'float') {
-        return parseFloat(value);
+    return problems;
+}
+
+function updateRangeWarning(device) {
+    let warning = $("#scan_range_warning");
+    if (warning.length === 0) {
+        return;
     }
-    else if (type == 'bool') {
-        return value.toLowerCase() === "true";
+    let counts = countScanProcessors(device);
+    let messages = [];
+    if (counts.invalid.length > 0) {
+        messages.push("Range " + counts.invalid.join(", ") + ": start must be lower than stop.");
+    }
+    if (counts.total > MAX_SCAN_PROCESSORS) {
+        messages.push(counts.total + " scan windows (&gt; " + MAX_SCAN_PROCESSORS + "). Reduce or split the scanned ranges to avoid overloading the SDR.");
+    }
+    if (messages.length > 0) {
+        warning.html(messages.join("<br>")).show();
     }
     else {
-        return parseInt(value);
+        warning.hide();
     }
+}
+
+function scannerLabel(scanner, scanner_id) {
+    // Identify a scanner by its devices instead of the per-boot raw id.
+    let names = (scanner['devices'] || []).map(function (device) {
+        return device['alias'] || device['driver'] + "_" + device['serial'];
+    }).filter(function (name) { return name; });
+    return names.length ? names.join(" + ") : "scanner #" + scanner_id;
 }
 
 function addScanner(scanner, scanner_id) {
@@ -76,15 +253,15 @@ function addScanner(scanner, scanner_id) {
     $(i).prop("type", "radio");
     $(i).prop("name", "scanner_selector");
     $(i).click(function () {
-        selectScanner(scanner);
+        selectScanner(scanner, scanner_id);
     });
 
     let l = document.createElement("label");
     $(l).addClass("form-check-label");
-    $(l).append("scanner #" + scanner_id);
+    $(l).append(scannerLabel(scanner, scanner_id));
     $(l).click(function () {
         $(i).prop('checked', true);
-        selectScanner(scanner);
+        selectScanner(scanner, scanner_id);
     });
 
     $(d).append(i);
@@ -92,10 +269,8 @@ function addScanner(scanner, scanner_id) {
     $("#scanner_selector").append(d);
 }
 
-function selectScanner(scanner) {
-    $("#scanner_section").show();
-    $("#device_section").hide();
-    $("#save").prop("disabled", false);
+function selectScanner(scanner, scanner_id) {
+    selectedScannerId = scanner_id;
     updateInput(scanner, '#transmission_tunning_step', ['recording', 'step']);
     updateInput(scanner, '#transmission_max_noise_time_ms', ['recording', 'max_noise_time_ms']);
     updateInput(scanner, "#transmission_min_time_ms", ['recording', 'min_time_ms']);
@@ -110,10 +285,10 @@ function selectScanner(scanner) {
 
     $("#device_selector").empty();
     $("#ignored_frequencies").find("tr:gt(0)").remove();
-    scanner['devices'].forEach(function (device) {
+    (scanner['devices'] || []).forEach(function (device) {
         addDevice(scanner, device);
     });
-    scanner['ignored_frequencies'].forEach(function (range) {
+    (scanner['ignored_frequencies'] || []).forEach(function (range) {
         addIgnoredFrequency(scanner['ignored_frequencies'], range);
     });
     $("#new_ignored_frequency").unbind("click");
@@ -122,6 +297,7 @@ function selectScanner(scanner) {
         let range = scanner['ignored_frequencies'][scanner['ignored_frequencies'].length - 1];
         addIgnoredFrequency(scanner['ignored_frequencies'], range);
     });
+    updateSaveButton();
 }
 
 function addDevice(scanner, device) {
@@ -138,7 +314,11 @@ function addDevice(scanner, device) {
 
     let l = document.createElement("label");
     $(l).addClass("form-check-label");
-    $(l).append(device["driver"] + " - " + device["serial"]);
+    let name = (device["driver"] ? device["driver"] + " - " : "") + device["serial"];
+    if (device["alias"]) {
+        name += " (" + device["alias"] + ")";
+    }
+    $(l).append(name);
     $(l).click(function () {
         $(i).prop('checked', true);
         selectDevice(scanner, device);
@@ -147,22 +327,18 @@ function addDevice(scanner, device) {
     $(d).append(i);
     $(d).append(l);
 
+    let a = document.createElement("span");
+    $(a).addClass("mx-2");
+    $(a).addClass("badge");
     if (device['connected']) {
-        let a = document.createElement("span");
-        $(a).addClass("mx-2");
-        $(a).addClass("badge");
         $(a).addClass("bg-success");
         $(a).html("connected");
-        $(d).append(a);
     }
     else {
-        let a = document.createElement("span");
-        $(a).addClass("mx-2");
-        $(a).addClass("badge");
-        $(a).addClass("bg-danger");
+        $(a).addClass("bg-secondary");
         $(a).html("not connected");
-        $(d).append(a);
     }
+    $(d).append(a);
 
     $("#device_selector").append(d);
 }
@@ -182,10 +358,12 @@ function setValue(element, keys, value) {
 function updateInput(element, element_id, keys, type = 'integer') {
     let value = element;
     keys.forEach(function (key) {
-        value = value[key];
+        value = (value === null || value === undefined) ? value : value[key];
     });
     $(element_id).val(value);
-    $(element_id).change(function () {
+    // Rebind instead of adding a handler: this is called every time a scanner or
+    // device is selected, and stacking handlers made changes fire repeatedly.
+    $(element_id).off("change").on("change", function () {
         setValue(element, keys, parseValue($(this).val(), type));
     });
 }
@@ -194,10 +372,10 @@ function addIgnoredFrequency(ranges, range) {
     let tr = document.createElement("tr");
     $(tr).append(createInput(range['frequency'], function (value) {
         range['frequency'] = value;
-    }));
+    }, 'float', MHZ));
     $(tr).append(createInput(range['bandwidth'], function (value) {
         range['bandwidth'] = value;
-    }));
+    }, 'float', MHZ));
     $(tr).append(createButton("Delete", function () {
         let index = Array.prototype.indexOf.call($(tr).parent().children(), tr) - 1;
         ranges.splice(index, 1);
@@ -207,13 +385,8 @@ function addIgnoredFrequency(ranges, range) {
 }
 
 function selectDevice(scanner, device) {
-    if (device['connected']) {
-        $("#device_section").show();
-    }
-    else {
-        $("#device_section").hide();
-    }
-
+    // The device section is always available in the "SDR device settings" tab;
+    // the badge already communicates connection state.
     let setInputsEnabled = function (enabled) {
         if (enabled)
             $("#device_settings").show();
@@ -228,9 +401,9 @@ function selectDevice(scanner, device) {
         setInputsEnabled($(this).is(':checked'));
     });
 
-    $("#device_sample_rate").unbind("click");
+    $("#device_sample_rate").unbind("change");
     $("#device_sample_rate").empty();
-    device['sample_rates'].forEach(function (sample_rate) {
+    (device['sample_rates'] || [device['sample_rate']]).forEach(function (sample_rate) {
         $("#device_sample_rate").append(new Option(sample_rate, sample_rate));
     });
     $("#device_sample_rate").val(device['sample_rate']);
@@ -243,16 +416,17 @@ function selectDevice(scanner, device) {
     $("#gains").find("tr:gt(0)").remove();
     $("#crontab").find("tr:gt(1)").remove();
 
-    device['ranges'].forEach(function (range) {
-        addScannedFrequency(device['ranges'], range);
+    (device['ranges'] || []).forEach(function (range) {
+        addScannedFrequency(device, range);
     });
-    device['satellites'].forEach(function (satellite) {
+    updateRangeWarning(device);
+    (device['satellites'] || []).forEach(function (satellite) {
         addSatellite(device['satellites'], satellite);
     });
-    device['gains'].forEach(function (gain) {
+    (device['gains'] || []).forEach(function (gain) {
         addGain(gain);
     });
-    device['crontabs'].forEach(function (crontab) {
+    (device['crontabs'] || []).forEach(function (crontab) {
         addCrontab(device['crontabs'], crontab);
     });
 
@@ -260,7 +434,8 @@ function selectDevice(scanner, device) {
     $("#new_scanned_frequency").click(function () {
         device['ranges'].push({ 'start': 0, 'stop': 0 });
         let range = device['ranges'][device['ranges'].length - 1];
-        addScannedFrequency(device['ranges'], range);
+        addScannedFrequency(device, range);
+        updateRangeWarning(device);
     });
 
     $("#new_satellite").unbind("click");
@@ -286,18 +461,21 @@ function selectDevice(scanner, device) {
     setInputsEnabled(device["enabled"]);
 }
 
-function addScannedFrequency(ranges, range) {
+function addScannedFrequency(device, range) {
     let tr = document.createElement("tr");
     $(tr).append(createInput(range['start'], function (value) {
         range['start'] = value;
-    }));
+        updateRangeWarning(device);
+    }, 'float', MHZ));
     $(tr).append(createInput(range['stop'], function (value) {
         range['stop'] = value;
-    }));
+        updateRangeWarning(device);
+    }, 'float', MHZ));
     $(tr).append(createButton("Delete", function () {
         let index = Array.prototype.indexOf.call($(tr).parent().children(), tr) - 1;
-        ranges.splice(index, 1);
+        device['ranges'].splice(index, 1);
         tr.remove();
+        updateRangeWarning(device);
     }));
     $("#devices").append(tr);
 }
@@ -312,10 +490,10 @@ function addSatellite(satellites, satellite) {
     }, "string"));
     $(tr).append(createInput(satellite['frequency'], function (value) {
         satellite['frequency'] = value;
-    }));
+    }, 'float', MHZ));
     $(tr).append(createInput(satellite['bandwidth'], function (value) {
         satellite['bandwidth'] = value;
-    }));
+    }, 'float', MHZ));
     $(tr).append(createInputSelect(satellite['modulation'], function (value) {
         satellite['modulation'] = value;
     }, "", ["AM", "FM", "Other"], "string"));
@@ -353,10 +531,10 @@ function addCrontab(objects, object) {
     }, "integer"));
     $(tr).append(createInput(object['frequency'], function (value) {
         object['frequency'] = value;
-    }));
+    }, 'float', MHZ));
     $(tr).append(createInput(object['bandwidth'], function (value) {
         object['bandwidth'] = value;
-    }));
+    }, 'float', MHZ));
     $(tr).append(createInputSelect(object['modulation'], function (value) {
         object['modulation'] = value;
     }, "", ["AM", "FM", "Other"], "string"));
@@ -375,13 +553,22 @@ function createLabel(value) {
     return td;
 }
 
-function createInput(value, callback, type = 'integer') {
+function createInput(value, callback, type = 'integer', scale = 1) {
     let td = document.createElement("td");
     let i = document.createElement("input");
     $(i).addClass("form-control");
-    $(i).val(value);
+    if (type !== 'string') {
+        $(i).attr("type", "number");
+        $(i).attr("step", "any");
+    }
+    if (scale !== 1 && value !== null && value !== undefined && value !== "") {
+        $(i).val(parseFloat(value) / scale);
+    } else {
+        $(i).val(value);
+    }
     $(i).change(function () {
-        callback(parseValue($(this).val(), type));
+        let parsed = parseValue($(this).val(), type);
+        callback(scale === 1 ? parsed : parsed * scale);
     });
     td.append(i);
     return td;

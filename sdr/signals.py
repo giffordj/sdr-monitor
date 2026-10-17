@@ -1,5 +1,4 @@
 from gnuradio import blocks
-import astropy.nddata
 import datetime
 import io
 import math
@@ -64,6 +63,9 @@ def wav_stream_from_cu8_pcm16(path, sample_rate, chunk_size=16 * 1024 * 1024):
 
 
 def make_spectrogram(data, sample_rate):
+    # astropy pulls in a large dependency tree; only needed here.
+    import astropy.nddata
+
     factor = max(1, int(math.sqrt(sample_rate // 20000)))
     scale = factor + 1
     fft = 2 ** (10 + factor)

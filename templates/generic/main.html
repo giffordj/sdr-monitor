@@ -14,6 +14,9 @@
     <link href="{% static 'css/logis_custom.css' %}" rel="stylesheet">
     <link href="{% static 'css/dragscroll.css' %}" rel="stylesheet">
 
+    {% include "generic/theme.html" %}
+    {% include "generic/ui.html" %}
+
     {% include "generic/meta/js.html" %}
 
     <script src="{% static 'libs/jquery.min.js' %}"></script>
@@ -28,7 +31,7 @@
     {% block main_scripts %}
     {% endblock %}
 
-    <title>{% block main_title %}{% endblock %} | {% trans "APP_NAME" %}</title>
+    <title>{% block main_title %}{% endblock %} | SDR Monitor</title>
     <link rel="icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
 </head>
 
@@ -38,13 +41,14 @@
         <div class="container-fluid container-xl position-relative d-flex align-items-center">
             <a href="{% url 'home' %}" class="logo d-flex align-items-center me-auto">
                 <img src="{% static 'img/favicon.ico' %}" alt="">
-                <h1 class="sitename">{% trans "APP_NAME" %}</h1>
+                <h1 class="sitename">SDR Monitor</h1>
             </a>
             <nav id="navmenu" class="navmenu">
                 <ul>
                     <li class="dropdown"><a href="#"><span>{% trans "CONFIGURATION" %}</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
                         <ul>
                             <li><a href="{% url 'sdr_settings' %}">Monitor settings</a></li>
+                            <li><a href="{% url 'sdr_keep_rules' %}">Retention</a></li>
                             <li><a href="{% url 'sdr_config' %}">Sdr settings</a></li>
                         </ul>
                     </li>
@@ -57,6 +61,8 @@
                     <li><a href="{% url 'sdr_groups' %}"> Groups </a></li>
                     <li><a href="{% url 'sdr_spectrograms' %}"> Spectrograms </a></li>
                     <li><a href="{% url 'sdr_transmissions' %}"> Transmissions </a></li>
+                    <li><a href="{% url 'sdr_radio' %}"> Radio </a></li>
+                    <li><a href="{% url 'sdr_scanning_status' %}"> Status </a></li>
                     <li class="dropdown"><a href="#"><span>{% trans "EXTRA" %}</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
                         <ul>
                             {% if user.is_authenticated and user.is_staff %}
@@ -67,6 +73,7 @@
                             <li><a href="{% url 'sdr_all' %}">{% trans "DOWNLOAD ALL" %}</a></li>
                         </ul>
                     </li>
+                    <li><a href="#" id="theme-toggle" title="Toggle dark mode"><i class="bi bi-moon"></i></a></li>
                     {% if user.is_authenticated %}
                     <li><a href="{% url 'account' %}">{% trans "ACCOUNT" %}</a></li>
                     {% else %}
@@ -88,8 +95,11 @@
 
     <footer id="footer" class="footer dark-background mt-2">
         <div class="container copyright text-center mt-4">
-            <p>© <span>Copyright</span> <strong class="px-1 sitename">shajen.pl</strong> <span>{% trans "ALL RIGHTS RESERVED" %}</span></p>
-            <div class="credits">{% trans "DESIGNED BY" %} <a href="https://bootstrapmade.com/">BootstrapMade</a> </div>
+            <p>© <span>Copyright</span> <strong class="px-1 sitename">SDR Monitor</strong> <span>{% trans "ALL RIGHTS RESERVED" %}</span></p>
+            <div class="credits">
+                SDR Monitor &mdash; based on the original project by <a href="https://github.com/shajen/sdr-monitor">shajen</a> (GPLv3).
+                {% trans "DESIGNED BY" %} <a href="https://bootstrapmade.com/">BootstrapMade</a>
+            </div>
         </div>
 
     </footer>

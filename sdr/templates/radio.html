@@ -1,0 +1,160 @@
+{% extends "generic/section_big.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block section_title %}Radio{% endblock %}
+
+{% block main_scripts %}
+<link href="{% static 'css/radio.css' %}" rel="stylesheet">
+<script src="{% static 'js/radio.js' %}"></script>
+{% endblock %}
+
+{% block section_content %}
+{% csrf_token %}
+<div id="radio" data-api-url="{% url 'sdr_api_radio' %}" data-stream-url="{% url 'sdr_api_radio_stream' %}" data-scanner-url="{% url 'sdr_api_scanner' %}"></div>
+<div id="radio_toast" class="toast-container position-fixed top-0 end-0 p-3"></div>
+
+<div class="s120">
+
+    {# ---- brand strip + modern digital core ---- #}
+    <div class="brand-strip">
+        <div class="brand">sdr monitor<span class="model">S-120</span></div>
+        <div class="readout">
+            <span class="digits" id="radio_readout">9650.0</span>
+            <span class="unit" id="radio_readout_unit">kHz</span>
+            <span class="chips">
+                <span class="chip" id="radio_mode_label">AM</span>
+                <span class="chip" id="radio_status">idle</span>
+                <span class="chip">scanner <span id="radio_scanner">?</span></span>
+            </span>
+        </div>
+    </div>
+
+    {# ---- slide-rule dial ---- #}
+    <div class="dial">
+        <div class="spread-row">
+            <div class="band-cell">Band spread</div>
+            <div class="spread-strip" id="radio_spread">
+                <div class="cursor" id="radio_spread_cursor"></div>
+                <div class="spread-label" id="radio_spread_label">fine tune</div>
+            </div>
+            <div class="right-cell">set to 100</div>
+        </div>
+        <div class="dial-row" id="dial_row_1">
+            <div class="band-cell"><span class="num">Band 1</span> <span class="mode">AM</span></div>
+            <div class="track" id="dial_track_1"><span class="dial-chip" id="dial_chip_1"></span></div>
+            <div class="right-cell">MC Band 1</div>
+        </div>
+        <div class="dial-row" id="dial_row_2">
+            <div class="band-cell"><span class="num">Band 2</span> <span class="mode">SW</span></div>
+            <div class="track" id="dial_track_2"><span class="dial-chip" id="dial_chip_2"></span></div>
+            <div class="right-cell">MC Band 2</div>
+        </div>
+        <div class="dial-row" id="dial_row_3">
+            <div class="band-cell"><span class="num">Band 3</span> <span class="mode">SW</span></div>
+            <div class="track" id="dial_track_3"><span class="dial-chip" id="dial_chip_3"></span></div>
+            <div class="right-cell">MC Band 3</div>
+        </div>
+        <div class="dial-row" id="dial_row_4">
+            <div class="band-cell"><span class="num">Band 4</span> <span class="mode">SW</span></div>
+            <div class="track" id="dial_track_4"><span class="dial-chip" id="dial_chip_4"></span></div>
+            <div class="right-cell">MC Band 4</div>
+        </div>
+    </div>
+
+    {# ---- control face ---- #}
+    <div class="face">
+        <div class="knob-cell tight">
+            <div class="knob" id="knob_spread" tabindex="0" role="slider" aria-label="Band spread fine tune"><div class="pointer"></div><div class="cap"></div></div>
+            <div class="knob-label">Band spread</div>
+            <div class="knob-value" id="knob_spread_val">0 Hz</div>
+        </div>
+        <div class="knob-cell">
+            <div class="knob" id="knob_volume" tabindex="0" role="slider" aria-label="Volume"><div class="pointer"></div><div class="cap"></div></div>
+            <div class="knob-label">Volume</div>
+            <div class="knob-value" id="knob_volume_val">80%</div>
+        </div>
+        <div class="knob-cell tight">
+            <div class="phones" title="Phones"></div>
+            <div class="knob-label">Phones</div>
+        </div>
+        <div class="knob-cell tight">
+            <div class="knob" id="knob_bfo" tabindex="0" role="button" aria-label="B.F.O. mode select"><div class="pointer"></div><div class="cap"></div></div>
+            <div class="knob-label">B.F.O.</div>
+            <div class="knob-value" id="knob_bfo_val">AM</div>
+        </div>
+        <div class="knob-cell tight">
+            <div class="receive" id="radio_receive" role="switch" aria-checked="false" tabindex="0"><div class="paddle"></div></div>
+            <div class="knob-label" id="radio_receive_label">Standby</div>
+        </div>
+        <div class="knob-cell">
+            <div class="bandsel" id="radio_bandsel">
+                <button type="button" data-band="0">1</button>
+                <button type="button" data-band="1">2</button>
+                <button type="button" data-band="2">3</button>
+                <button type="button" data-band="3">4</button>
+            </div>
+            <div class="knob-label mt-2">Band selector</div>
+        </div>
+        <div class="knob-cell">
+            <div class="knob tuning" id="knob_tune" tabindex="0" role="slider" aria-label="Tuning"><div class="pointer"></div><div class="cap"></div></div>
+            <div class="knob-label">Tuning</div>
+            <div class="knob-value" id="knob_tune_val">&mdash;</div>
+        </div>
+    </div>
+
+    {# ---- modern strip ---- #}
+    <div class="modern">
+        <div>
+            <label for="radio_band">Band</label>
+            <select id="radio_band" class="form-select form-select-sm"></select>
+        </div>
+        <div>
+            <label for="radio_mode">Mode</label>
+            <select id="radio_mode" class="form-select form-select-sm">
+                <option value="WFM">WFM</option>
+                <option value="FM">FM</option>
+                <option value="AM">AM</option>
+                <option value="USB">USB</option>
+                <option value="LSB">LSB</option>
+            </select>
+        </div>
+        <div style="min-width: 150px;">
+            <label for="radio_gain">RF gain <span id="radio_gain_val">Auto</span></label>
+            <input id="radio_gain" type="range" min="0" max="50" step="0.1" value="0" class="form-range">
+        </div>
+        <div>
+            <label for="radio_freq_input">Frequency</label>
+            <div class="input-group input-group-sm">
+                <input id="radio_freq_input" type="number" step="any" class="form-control" style="max-width:110px;">
+                <select id="radio_freq_unit" class="form-select" style="max-width:84px;">
+                    <option value="MHz" selected>MHz</option>
+                    <option value="kHz">kHz</option>
+                    <option value="Hz">Hz</option>
+                </select>
+                <button id="radio_freq_go" class="btn btn-outline-light btn-sm" type="button">Go</button>
+                <button id="radio_down" class="btn btn-outline-light btn-sm" type="button">&minus;</button>
+                <button id="radio_up" class="btn btn-outline-light btn-sm" type="button">+</button>
+            </div>
+        </div>
+        <div>
+            <label for="radio_device">Radio device</label>
+            <select id="radio_device" class="form-select form-select-sm"></select>
+        </div>
+        <div>
+            <label>Session</label>
+            <div class="d-flex gap-2 align-items-center">
+                <button id="radio_record" class="btn btn-sm btn-outline-danger" disabled>Record</button>
+                <button id="radio_scanner_toggle" class="btn btn-sm btn-success" type="button">Scanner: ...</button>
+            </div>
+        </div>
+        <div class="meter">
+            <label>S-meter</label>
+            <div class="bar"><div class="needle" id="radio_meter_needle"></div></div>
+            <div class="scale"><span>1</span><span>3</span><span>5</span><span>7</span><span>9</span><span>+20</span></div>
+        </div>
+    </div>
+
+    <audio id="radio_audio" style="display:none"></audio>
+</div>
+{% endblock %}

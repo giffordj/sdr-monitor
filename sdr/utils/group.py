@@ -1,6 +1,15 @@
 from django.db.models import F
 from sdr.models import *
 
+# Modulation types offered when adding/editing a group. The list is combined
+# with whatever the scanner has already produced, so new types show up too.
+DEFAULT_MODULATIONS = ["AM", "FM", "NFM", "WFM", "USB", "LSB", "DSB", "CW"]
+
+
+def get_modulation_choices():
+    existing = set(Group.objects.values_list("modulation", flat=True).distinct())
+    return sorted({m for m in (set(DEFAULT_MODULATIONS) | existing) if m})
+
 
 def update_groups():
     Transmission.objects.update(group_id=get_default_group_id())

@@ -1,7 +1,7 @@
-function addSelectOption(id, value) {
+function addSelectOption(id, value, text) {
     $(id).append($('<option>', {
         value: value,
-        text: value
+        text: text || value
     }));
 }
 

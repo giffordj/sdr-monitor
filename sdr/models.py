@@ -7,7 +7,13 @@ def get_default_device_id():
 
 
 def get_default_group_id():
-    return Group.objects.get_or_create(name="Default", begin_frequency=0, end_frequency=10000000000, modulation="FM")[0].id
+    # Use an existing group as the fallback target. Only create the Default
+    # group when there are no groups at all, otherwise a Default group would be
+    # re-created and reset transmission assignments.
+    group = Group.objects.order_by("id").first()
+    if group is None:
+        group = Group.objects.get_or_create(name="Default", begin_frequency=0, end_frequency=10000000000, modulation="FM")[0]
+    return group.id
 
 
 def get_default_audio_class_id():

@@ -1,47 +1,40 @@
-FROM ubuntu:24.04 AS builder
-
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends build-essential git python3 python3-dev python3-pip python3-numpy libpq5 tzdata gettext libjpeg8-dev libopenexr-dev libpng-dev libfreetype6-dev && \
-    apt-get autoremove -y && \
-    apt-get clean all && \
-    rm -rf /var/lib/apt/lists/
-
-RUN pip download --no-binary OpenImageIO openimageio==3.0.11.0 && \
-    tar -xzf openimageio-*.tar.gz && \
-    cd openimageio-* && \
-    sed -i '/include (testing)/d' CMakeLists.txt && \
-    pip install --config-settings=cmake.build-type=MinSizeRel --config-settings=cmake.args="-DLINKSTATIC=0" --break-system-packages .
+# Overlay image: reuse the prebuilt upstream sdr-hub image (nginx, supervisord,
+# gnuradio, vendored static libs) and replace only the application source in /app.
+#
+# NOTE: build from shajen/sdr-hub, NOT shajen/sdr-monitor. The sdr-monitor image
+# has no nginx/supervisord and a different entrypoint, so the container would
+# start nothing and Traefik returns "bad gateway". The base entrypoint/CMD is
+# inherited on purpose (do not override ENTRYPOINT, that also clears CMD).
+# Digest pinned 2026-10-17 (linux/amd64 manifest). The base ships gnuradio,
+# nginx, supervisord, mosquitto, librtlsdr/SoapyRTLSDR and the scanner binary.
+ARG SDR_HUB_IMAGE=shajen/sdr-hub:2.2.2@sha256:3c3d19559631a37dc5a99142e92702a23a6864a997305706e632214763cae54b
+FROM ${SDR_HUB_IMAGE}
 
 WORKDIR /app
-COPY requirements.txt /app/
-RUN arch=$(dpkg --print-architecture) && [ "$arch" = "armhf" ] && sed -i '/ai-edge-litert/d' requirements.txt || true
-RUN MAKEFLAGS="-j$(nproc)" pip install --break-system-packages --no-cache-dir -r requirements.txt
-
-FROM ubuntu:24.04
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends python3 python3-numpy gnuradio libpq5 tzdata ca-certificates gettext libjpeg8 libopenexr-3-1-30 libpng16-16t64 libfreetype6 && \
-    apt-get autoremove -y && \
-    apt-get clean all && \
-    rm -rf /var/lib/apt/lists/
-
-COPY --from=builder /usr/local/lib/python3.12/dist-packages/ /usr/local/lib/python3.12/dist-packages/
-COPY --from=builder /usr/local/bin/ /usr/local/bin/
-WORKDIR /app
-COPY . .
-COPY /entrypoint/* /entrypoint/
-RUN django-admin compilemessages && \
-    mkdir -p /app/data && \
-    ./manage.py runscript download_libs --script-args="-c libs.json -o static/libs/" && \
+COPY . /app/
+# Tighter log rotation than the base image (see config/logrotate.conf): caps
+# growth when a program crash-loops and floods /var/log/sdr/.
+COPY config/logrotate.conf /etc/logrotate.d/sdr.conf
+# The live-radio MP3 stream must not be buffered by nginx, and the long-lived
+# response needs a long read timeout. Set both in the http block.
+RUN sed -i 's/^http {/http {\n\tproxy_buffering off;\n\tproxy_read_timeout 3600s;\n\tproxy_send_timeout 3600s;/' /etc/nginx/nginx.conf && \
+    grep -q proxy_buffering /etc/nginx/nginx.conf
+# Drop any bytecode shipped in the base image so Python recompiles from the
+# source above (avoids stale .pyc shadowing the updated code).
+RUN find /app -type d -name __pycache__ -prune -exec rm -rf {} + && \
     chown -R ubuntu:ubuntu /app/
-ARG VERSION=""
-ARG COMMIT=""
-ARG CHANGES=""
-RUN echo "$(TZ=UTC date +"%Y-%m-%dT%H:%M:%S%z")" | tee /sdr_monitor_build_time && \
-    echo "$VERSION" | tee /sdr_monitor_version && \
-    echo "$COMMIT" | tee /sdr_monitor_commit && \
-    echo "$CHANGES" | tee /sdr_monitor_changes
+
+# Live radio ("SDR Monitor" shortwave receiver): the base image ships librtlsdr and
+# SoapySDR but no RTL command-line tools. Add rtl_fm (demod), sox (resampling)
+# and lame (MP3 streaming) so the in-panel radio can tune and stream audio.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends rtl-sdr sox lame && \
+    rm -rf /var/lib/apt/lists/*
+
+# The running supervisord uses /etc/supervisor/conf.d/supervisord.conf directly,
+# which has no control socket, so supervisorctl could not stop/start the scanner.
+# The radio borrows the (single) RTL-SDR from the scanner, so it must be able to
+# stop sdr_scanner while listening and start it again afterwards.
+RUN printf '\n[unix_http_server]\nfile=/var/run/sdr/supervisor.sock\nchmod=0700\n\n[rpcinterface:supervisor]\nsupervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface\n\n[supervisorctl]\nserverurl=unix:///var/run/sdr/supervisor.sock\n' >> /etc/supervisor/conf.d/supervisord.conf
 
 EXPOSE 8000
-ENTRYPOINT [ "/entrypoint/entrypoint.sh" ]

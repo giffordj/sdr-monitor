@@ -1,6 +1,8 @@
 from django.utils.timezone import localtime
+from sdr.app_settings import AppSettings, AppSettingsKey
 from sdr.models import *
 from sdr.signals import *
+from sdr.utils.transmission import delete_transmission
 import common.utils.classifier
 import csv
 import io
@@ -42,9 +44,20 @@ class SoundClassifier:
             self.__logger.warning("exception: %s" % e)
             return "Unknown"
 
+    def __is_noise(self, name):
+        if not AppSettings.get(AppSettingsKey.AUTO_DELETE_NOISE):
+            return False
+        return name in AppSettings.noise_labels()
+
     def update(self, t):
         self.__logger.info("id: %d, frequency: %d Hz, date: %s, duration: %s" % (t.id, t.middle_frequency(), localtime(t.end_date), t.duration()))
         sound_label = self.get_sound_label(t)
         name = self.__get_audio_class_name(sound_label)
+        if self.__is_noise(name) and not AppSettings.should_keep(name, t.duration().total_seconds()):
+            self.__logger.info("auto-deleting noise transmission: id: %d, class: %s, subname: %s" % (t.id, name, sound_label))
+            delete_transmission(t)
+            return
+        if self.__is_noise(name):
+            self.__logger.info("keeping noise transmission: id: %d, class: %s, duration: %s (keep rule)" % (t.id, name, t.duration()))
         t.audio_class = AudioClass.objects.get_or_create(name=name, subname=sound_label)[0]
         t.save()

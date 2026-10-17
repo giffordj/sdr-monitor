@@ -25,7 +25,14 @@ def frequency(value, force_segment=None):
         (str, unit) = append(str, unit, (value // 1000) % 1000, "kHz")
         (str, unit) = append(str, unit, value % 1000, "Hz")
         return "%s %s" % (str, unit)
-    except:
+    except (TypeError, ValueError):
+        return value
+
+
+def to_mhz(value):
+    try:
+        return ("%.6f" % (int(value) / 1000000)).rstrip("0").rstrip(".")
+    except (TypeError, ValueError):
         return value
 
 
@@ -38,5 +45,6 @@ def big_number(value):
 
 
 register.filter("frequency", frequency)
+register.filter("to_mhz", to_mhz)
 register.filter("natural_size", natural_size)
 register.filter("big_number", big_number)
