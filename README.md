@@ -23,6 +23,14 @@ web UI for RTL-SDR dongles). Published for credit and reuse; see
   with scanner aliases, alias-safe MQTT topics (spaces/slashes), stale
   gain-test sweep on reconnect, retention/list fixes.
 
+## Maintenance
+
+This fork is maintained by **Jim Gifford**. Updates are made **both manually and
+with AI assistance** - parts of the code, documentation and commit messages are
+produced with DevPass Code (an AI coding agent working against this repository),
+then reviewed, tested and deployed by a human. AI-assisted changes are not
+specially tagged; treat everything here as human-reviewed.
+
 ## Upstream credit
 
 All original design and the vast majority of the code are by **shajen**:

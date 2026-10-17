@@ -2,6 +2,9 @@
 
 All changes by Jim Gifford. Newest first.
 
+Updates to this fork are made **manually and with AI assistance**
+(DevPass Code); every change is reviewed, tested and deployed by a human.
+
 
 ## 2026-10-17
 - build(deps): refresh and pin vendored static libs (Bootstrap 5.3.8 bundle+css, icons 1.13.1, moment 2.31.0), drop duplicate bootstrap.js and unused flag-icons; add requirements.lock, yamnet checksums, digest-pinned base image, CI asset check
@@ -72,10 +75,10 @@ All changes by Jim Gifford. Newest first.
 - ci: build + push sdr-monitor image to registry on push
 
 ## 2026-09-28
-- docs: destiny deploy uses read-only SSH deploy key, not embedded password
+- docs: deployment uses a read-only SSH deploy key, not an embedded password
 
 ## 2026-09-27
-- docs: running instance migrated to destiny (off docker-pi-3b)
+- docs: running instance migrated to a dedicated SDR host
 
 ## 2026-09-25
 - docs: note pi3b deploy-auth limitation and scanner id regeneration
@@ -108,7 +111,7 @@ All changes by Jim Gifford. Newest first.
 - ui(sdr): put transmissions delete-class/all controls next to Columns
 - ui(sdr): move transmissions delete-class/all controls into a toolbar above the table
 - feat(sdr): AUTHELIA_ALL_STAFF fallback + log authelia groups
-- Merge branch 'main' of http://192.168.5.32:3000/giffordj/sdr-monitor
+- Merge branch 'main' of the private repository
 - Updates
 - fix(sdr): hide section-title decorative watermark in all themes
 - fix(sdr): don't force section-title watermark span opaque in dark mode
