@@ -83,7 +83,9 @@
 }
 
 .s120 .readout .chips {
-    margin-left: auto;
+    /* own line: the frequency + unit must never be squeezed by the chips */
+    flex-basis: 100%;
+    margin-left: 0;
     text-align: right;
     font-size: .72rem;
     text-transform: uppercase;

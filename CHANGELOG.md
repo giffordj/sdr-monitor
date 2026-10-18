@@ -7,6 +7,7 @@ Updates to this fork are made **manually and with AI assistance**
 
 
 ## 2026-10-18
+- ui(radio): Record moved to the receiver cell; the readout's status chips sit on their own line so the frequency unit is never clipped
 - ui(radio): replace the S-120 knobs and the receive rocker with digital controls - volume slider, fine-tune input with +/- buttons, Receive/Standby buttons, and explicit Scanner on/Scanner off buttons
 - ui(radio): default volume is 40% (also the knob double-click reset)
 - ui(config): scanner and SDR-device selection as tabs in the settings format instead of radio dots (first device selected automatically)
