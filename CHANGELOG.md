@@ -7,6 +7,7 @@ Updates to this fork are made **manually and with AI assistance**
 
 
 ## 2026-10-18
+- fix(radio): a crash/restart while the radio holds a borrowed dongle no longer leaves it disabled (borrow marker restored on startup); the status page shows 'disabled' instead of 'stale' for a disabled device
 - feat(debug): panel-native log viewer (last 2,000 lines of any log file) and one support bundle (full logs + scanner config/status + versions); replaces the old download logs/data/all entries
 - ui(lists): the filter value picker sits inline beside the text input (compact icon dropdown) instead of stacking below it
 - ui(lists): Filter/Reset/Columns/Delete moved to a toolbar above the tables; the groups table uses fixed column widths so the filter inputs line up with the data columns (no more clipped labels or empty gap)

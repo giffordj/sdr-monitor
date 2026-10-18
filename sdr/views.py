@@ -639,6 +639,9 @@ def scanning_status(request):
                 "gains": fmt_gains(status_device.get("gains")),
                 "ranges": fmt_ranges(status_device.get("ranges")),
             })
+            if not row["enabled"]:
+                row["badge"] = "badge bg-secondary"
+                row["status"] = "disabled"
             devices.append(row)
         scanners.append({"id": scanner_id, "label": (" + ".join(row["alias"] for row in devices if row.get("alias") and row["alias"] != "-") or "scanner #%s" % scanner_id), "version": scanner.get("version", "-"), "workers": scanner.get("workers", "-"), "devices": devices})
     db_devices = [device_stats(device) for device in Device.objects.order_by("id")]

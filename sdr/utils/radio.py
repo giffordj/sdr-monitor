@@ -12,7 +12,7 @@ Two deployment modes:
   *also* scans (e.g. the V4 over the shortwave bands). Starting the radio
   disables that device in the scanner config live (over MQTT), uses the dongle
   for listening, and re-enables it on stop — the other dongle never stops
-  scanning. This is what the deployment runs.
+  scanning. This is what destiny runs.
 
 Dongles with a real HF upconverter (Blog V4) should set
 ``SDR_RADIO_HF_UPCONVERTER=1``: direct sampling (``-E direct2``) is skipped and
@@ -62,6 +62,10 @@ KEEP_SCANNER = os.environ.get("SDR_RADIO_KEEP_SCANNER", "") not in ("", "0")
 # radio is active) is temporarily disabled in the scanner config so rtl_fm can
 # use it. Requires SDR_RADIO_DEVICE to point at the same dongle.
 PAUSE_SERIAL = os.environ.get("SDR_RADIO_PAUSE_SERIAL", "").strip()
+# Pause-and-borrow disables the borrowed dongle in the scanner config. If the
+# process dies mid-session that state persists; this marker lets the next start
+# restore it.
+BORROW_MARKER = os.path.join(os.path.dirname(scanner_config.CONFIG_PATH), "radio_borrow.json")
 
 
 def _parse_radio_devices() -> list:
@@ -121,6 +125,7 @@ class RadioController:
         self.__record_begin = None
         self.__record_started = None
         self.__device = None
+        self.__recover_borrow()
 
     # -- devices --------------------------------------------------------------
     def __pick_device(self, serial: str | None) -> dict | None:
@@ -380,6 +385,42 @@ class RadioController:
         except Exception:
             return "UNKNOWN"
 
+    def __remove_borrow_marker(self) -> None:
+        try:
+            os.remove(BORROW_MARKER)
+        except OSError:
+            pass
+
+    def __recover_borrow(self) -> None:
+        """Re-enable a dongle left disabled by a radio session that was cut off."""
+        if not os.path.exists(BORROW_MARKER):
+            return
+        try:
+            with open(BORROW_MARKER, "r") as file:
+                marker = json.load(file)
+        except (OSError, ValueError):
+            marker = {}
+        serial = str(marker.get("serial") or PAUSE_SERIAL or "")
+        if not serial:
+            self.__remove_borrow_marker()
+            return
+        config = scanner_config.load()
+        changed = False
+        for device in config.get("devices", []):
+            if str(device.get("serial", "")) == serial and not device.get("enabled"):
+                device["enabled"] = True
+                changed = True
+        if changed:
+            try:
+                scanner_config.save(config)
+                for scanner_id in (scanner_mqtt.get_status(timeout=2.0) or {}):
+                    scanner_mqtt.apply_config(scanner_id, config)
+                logger.info("restored borrowed dongle %s after restart" % serial)
+            except Exception as e:
+                logger.warning("could not restore borrowed dongle %s: %s" % (serial, e))
+                return
+        self.__remove_borrow_marker()
+
     def __set_device_enabled(self, enabled: bool) -> None:
         """Enable/disable the borrow dongle in the scanner config (live)."""
         serial = self.__device_serial()
@@ -396,7 +437,15 @@ class RadioController:
                 device["enabled"] = enabled
                 changed = True
         if not changed:
+            if enabled:
+                self.__remove_borrow_marker()
             return
+        if not enabled:
+            try:
+                with open(BORROW_MARKER, "w") as file:
+                    json.dump({"serial": serial}, file)
+            except OSError as e:
+                logger.warning("could not write borrow marker: %s" % e)
         try:
             scanner_config.save(config)
         except Exception as e:
@@ -413,6 +462,8 @@ class RadioController:
             except Exception as e:
                 logger.warning("could not apply scanner config: %s" % e)
         logger.info("scanner device %s enabled=%s" % (serial, enabled))
+        if enabled:
+            self.__remove_borrow_marker()
 
     def __stop_scanner(self) -> None:
         logger.info("stopping scanner to free the RTL-SDR")
