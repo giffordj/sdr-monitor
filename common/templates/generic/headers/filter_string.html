@@ -1,0 +1,7 @@
+{% load custom_filters %}
+<th data-column="{{ field }}">
+    <input type="text" class="form-control" id="input_{{ field }}__icontains" placeholder="{{ field|humanize_field }}" name="{{ field }}__icontains"{% if form_id %} form="{{ form_id }}"{% endif %}>
+    {% if options %}
+    {% include "generic/headers/filter_options.html" with form_id=form_id %}
+    {% endif %}
+</th>

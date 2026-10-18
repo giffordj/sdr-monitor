@@ -1,0 +1,18 @@
+{% extends "generic/section_dialog.html" %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block section_title %}{% trans "SIGN IN" %}{% endblock %}
+
+{% block section_content %}
+<form method="post">
+    {% csrf_token %}
+    {{ form|crispy }}
+    <p>
+        <a href="{% url 'password_reset' %}">{% trans "RESET PASSWORD LINK" %}</a>
+    </p>
+    <div class="text-center">
+        <button type="submit" class="btn btn-primary">{% trans "SIGN IN" %}</button>
+    </div>
+</form>
+{% endblock %}

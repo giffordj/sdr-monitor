@@ -1,0 +1,66 @@
+<script>
+$(document).ready(function () {
+    $('.column-toggle').each(function () {
+        var $toggle = $(this);
+        var $table = $($toggle.data('target'));
+        if (!$table.length) {
+            return;
+        }
+
+        var storageKey = 'columns_' + ($table.attr('id') || 'table');
+        var saved = {};
+        try {
+            saved = JSON.parse(localStorage.getItem(storageKey)) || {};
+        } catch (e) {
+            saved = {};
+        }
+
+        var columns = {};
+        $table.find('[data-column]').each(function () {
+            var col = $(this).attr('data-column');
+            var label = $(this).attr('data-column-label') || '';
+            if (!(col in columns) || (!columns[col] && label)) {
+                columns[col] = label;
+            }
+        });
+
+        var $menu = $toggle.find('.dropdown-menu');
+        if (!$menu.length) {
+            return;
+        }
+
+        function apply() {
+            var state = {};
+            $menu.find('input[data-column]').each(function () {
+                var col = $(this).attr('data-column');
+                var visible = $(this).is(':checked');
+                state[col] = visible;
+                $table.find('[data-column="' + col + '"]').toggle(visible);
+            });
+            localStorage.setItem(storageKey, JSON.stringify(state));
+        }
+
+        Object.keys(columns).forEach(function (col) {
+            var id = storageKey + '_' + col;
+            var checked = saved[col] !== false;
+            $menu.append(
+                $('<div class="form-check"></div>').append(
+                    $('<input class="form-check-input" type="checkbox">')
+                        .attr('id', id)
+                        .attr('data-column', col)
+                        .prop('checked', checked),
+                    $('<label class="form-check-label"></label>')
+                        .attr('for', id)
+                        .text(columns[col] || col)
+                )
+            );
+        });
+
+        $menu.on('change', 'input[data-column]', apply);
+        $menu.on('click', function (e) {
+            e.stopPropagation();
+        });
+        apply();
+    });
+});
+</script>

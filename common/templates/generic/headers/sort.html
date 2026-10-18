@@ -1,0 +1,9 @@
+{% load custom_filters %}
+
+<th class="{% if col %}col-md-{{ col }}{% else %}col{% endif %}" data-column="{{ field }}" data-column-label="{{ name }}">
+    <div class="sort-links">
+        <a href="{% url_with_param 'order_by' field ',' %}"><i class="bi-sort-down-alt"></i></a>
+        <a href="{% url_with_param 'order_by' '-'|add:field ',' %}"><i class="bi-sort-up"></i></a>
+    </div>
+    {{ name }}
+</th>

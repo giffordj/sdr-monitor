@@ -1,0 +1,132 @@
+<script>
+(function () {
+    var stored = null;
+    try {
+        stored = localStorage.getItem('theme');
+    } catch (e) {
+        stored = null;
+    }
+    var theme = stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-bs-theme', theme);
+})();
+</script>
+<style>
+[data-bs-theme="dark"] {
+    --background-color: #0e1d34;
+    --default-color: #dbe2ef;
+    --heading-color: #ffffff;
+    --accent-color: #4a7dff;
+    --surface-color: #19335c;
+    --contrast-color: #ffffff;
+    --nav-mobile-background-color: #12294a;
+    --nav-dropdown-background-color: #19335c;
+    --nav-dropdown-color: #dbe2ef;
+    --nav-dropdown-hover-color: #7aa2ff;
+    color-scheme: dark;
+}
+
+[data-bs-theme="dark"] body {
+    background-color: var(--background-color);
+    color: var(--default-color);
+}
+
+/* .section-title span is the absolutely-positioned decorative watermark that
+   sits behind the h2. Hide it entirely (the h2 already shows the title). */
+.section-title span {
+    display: none;
+}
+
+[data-bs-theme="dark"] .section-title h2 {
+    color: var(--heading-color);
+}
+
+[data-bs-theme="dark"] .table {
+    --bs-table-color: var(--default-color);
+    --bs-table-bg: transparent;
+    --bs-table-striped-color: var(--default-color);
+    --bs-table-striped-bg: rgba(255, 255, 255, 0.05);
+    --bs-table-hover-color: #ffffff;
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.08);
+    --bs-table-border-color: rgba(255, 255, 255, 0.15);
+    color: var(--default-color);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select {
+    background-color: #12294a;
+    border-color: #3a5178;
+    color: var(--default-color);
+}
+
+[data-bs-theme="dark"] .form-control::placeholder {
+    color: #9aa9c4;
+}
+
+[data-bs-theme="dark"] .form-check-input {
+    background-color: #12294a;
+    border-color: #6c757d;
+}
+
+[data-bs-theme="dark"] .form-check-input:checked {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+[data-bs-theme="dark"] .dropdown-menu {
+    background-color: var(--surface-color);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-bs-theme="dark"] .dropdown-item {
+    color: var(--default-color);
+}
+
+[data-bs-theme="dark"] .dropdown-item:hover,
+[data-bs-theme="dark"] .dropdown-item:focus {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+[data-bs-theme="dark"] .alert {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-bs-theme="dark"] .nav-tabs .nav-link.active {
+    background-color: var(--surface-color);
+    border-color: rgba(255, 255, 255, 0.15) rgba(255, 255, 255, 0.15) var(--surface-color);
+}
+
+[data-bs-theme="dark"] .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var toggle = document.getElementById('theme-toggle');
+    if (!toggle) {
+        return;
+    }
+
+    function refresh() {
+        var dark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        var icon = toggle.querySelector('i');
+        if (icon) {
+            icon.className = dark ? 'bi bi-sun' : 'bi bi-moon';
+        }
+    }
+
+    refresh();
+    toggle.addEventListener('click', function (event) {
+        event.preventDefault();
+        var dark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        var theme = dark ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-bs-theme', theme);
+        try {
+            localStorage.setItem('theme', theme);
+        } catch (e) {
+        }
+        refresh();
+    });
+});
+</script>

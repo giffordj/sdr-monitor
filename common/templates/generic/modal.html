@@ -1,0 +1,18 @@
+{% load i18n %}
+<div class="modal fade" id="{{ name }}" tabindex="-1" aria-labelledby="{{ name }}Label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <p class="title-medium modal-title" id="{{ name }}Label">{{ title }}</p>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {{ text }}
+            </div>
+            <div class="modal-footer">
+                <a class="btn btn-success" href="{{ url }}">{% trans "YES" %}</a>
+                <a class="btn btn-danger" data-bs-dismiss="modal">{% trans "NO" %}</a>
+            </div>
+        </div>
+    </div>
+</div>

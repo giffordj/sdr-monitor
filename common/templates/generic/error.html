@@ -1,0 +1,14 @@
+{% extends "generic/section_small.html" %}
+{% load i18n %}
+
+{% block section_title %}{{ code }} - {{ name }}{% endblock %}
+
+{% block section_content %}
+<div class="row">
+    <div class="col-12">
+        <div class="col-md-12 text-center">
+            <div class="mb-4 lead">{% trans "OOPS" %} {{ description }}</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% load i18n %}
+<div id="loading-screen" style="display: {{display}};">
+    <div class="position-fixed top-0 start-0 w-100 h-100
+            d-flex justify-content-center align-items-center
+            bg-dark bg-opacity-75" style="z-index: 2000;">
+        <div class="text-center text-white">
+            <div class="spinner-border"></div>
+            <div class="mt-2">{{ title }}</div>
+        </div>
+    </div>
+</div>

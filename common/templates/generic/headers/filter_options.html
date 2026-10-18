@@ -1,0 +1,13 @@
+<div class="dropdown mt-1">
+    <a class="btn btn-primary dropdown-toggle" href="#" id="{{ field }}_list" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Select value</a>
+    <div class="dropdown-menu" aria-labelledby="{{ field }}_list" onclick="event.stopPropagation()">
+        {% for option in options %}
+        <a class="dropdown-item mt-1 mb-0 py-0" href="#">
+            <input class="form-check-input mt-2 py-0" type="radio" name="{{ field }}_option" value="{{ option }}" id="input_{{ field }}_option_{{ forloop.counter }}" field-id="{{ field }}"
+                onclick="var f=document.getElementById('input_{{ field }}__icontains'); if (f) { f.value = this.value; }"
+                {% if form_id %}form="{{ form_id }}"{% endif %}>
+            <label class="btn btn-primary btn-sm my-0" for="input_{{ field }}_option_{{ forloop.counter }}">{{ option }}</label>
+        </a>
+        {% endfor %}
+    </div>
+</div>

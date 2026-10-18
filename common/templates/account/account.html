@@ -1,0 +1,17 @@
+{% extends "generic/section_dialog.html" %}
+{% load i18n %}
+
+{% block section_title %}{% trans "INFORMATION" %}{% endblock %}
+
+{% block section_content %}
+<div class="text-center">
+    <p>{% blocktrans with username=user.username %}WELCOME_USER_MESSAGE {{ username }}{% endblocktrans %}</p>
+    <p><a class="btn btn-primary" href="{% url 'password_change' %}">{% trans "CHANGE PASSWORD" %}</a></p>
+    <div>
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button class="btn btn-primary" type="submit">{% trans "SIGN OUT" %}</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
