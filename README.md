@@ -50,8 +50,9 @@ The container image is built on the upstream `shajen/sdr-hub` base and adds:
   <https://gitea.osmocom.org/sdr/rtl-sdr> at a pinned commit (upstream v2.0.3;
   the GitHub `osmocom/rtl-sdr` repo is a mirror). Soname is kept at 2 so
   SoapyRTLSDR and the `rtl_*` tools keep working.
-- **SoapySDR / SoapyRTLSDR** - the Ubuntu 0.8.1 / 0.3.3 packages supplied by
-  the base image (upstreams: `pothosware/SoapySDR`, `pothosware/SoapyRTLSDR`).
+- **SoapySDR / SoapyRTLSDR** - built from upstream source at pinned commits
+  (`pothosware/SoapySDR` 0.9.0, `pothosware/SoapyRTLSDR` 0.3.4) in the image,
+  installed to `/usr/local` with the module in `modules0.9`.
 - **Vendored JS/CSS** - committed in `static/libs/` with checksums in
   `ai/CHECKSUMS.sha256` (Bootstrap 5.3.8, bootstrap-icons 1.13.1, moment
   2.31.0, jQuery 3.7.1, mqtt.js 4.3.7).
