@@ -213,6 +213,26 @@
     justify-content: flex-end;
     gap: .5rem;
 }
+.table.list-table thead .form-control,
+.table.list-table thead .form-select {
+    width: 100%;
+}
+.list-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .5rem;
+    margin-bottom: .5rem;
+}
+.table.fixed-cols {
+    table-layout: fixed;
+}
+.table.fixed-cols > thead > tr > th,
+.table.fixed-cols > tbody > tr > td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 .band-badge {
     font-weight: 500;
     letter-spacing: .02em;

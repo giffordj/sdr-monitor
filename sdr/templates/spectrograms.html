@@ -18,6 +18,21 @@
             </form>
         </div>
         {% endif %}
+        <div class="list-actions">
+            <input type="hidden" id="input_order_by" value="{{ order_by }}" name="order_by" form="filters">
+            <button type="submit" class="btn btn-primary btn-sm" form="filters"><i class="bi bi-funnel me-1"></i>Filter</button>
+            <a href="?reset" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</a>
+            <div class="dropdown column-toggle" data-target="#spectrograms-table">
+                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-columns-gap me-1"></i>Columns</button>
+                <div class="dropdown-menu p-2"></div>
+            </div>
+            {% if user.is_staff %}
+            <form action="{% url 'sdr_delete_all_spectrograms' %}" method="post" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Delete ALL spectrograms? This cannot be undone.');"><i class="bi bi-trash me-1"></i>Delete all</button>
+            </form>
+            {% endif %}
+        </div>
         <div class="table-responsive">
             <form id="filters" action="{% url 'sdr_spectrograms' %}" method="get"></form>
             <table id="spectrograms-table" class="table table-hover align-middle list-table">
@@ -31,23 +46,7 @@
                     <th></th>
                     {% include "generic/headers/filter_number.html" with field="sample_rate" form_id="filters" %}
                     {% include "generic/headers/filter_number.html" with field="step_frequency" form_id="filters" %}
-                    <th colspan="2">
-                        <div class="list-toolbar">
-                            <input type="hidden" id="input_order_by" value="{{ order_by }}" name="order_by" form="filters">
-                            <button type="submit" class="btn btn-primary btn-sm" form="filters"><i class="bi bi-funnel me-1"></i>Filter</button>
-                            <a href="?reset" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</a>
-                            <div class="dropdown column-toggle" data-target="#spectrograms-table">
-                                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-columns-gap me-1"></i>Columns</button>
-                                <div class="dropdown-menu p-2"></div>
-                            </div>
-                            {% if user.is_staff %}
-                            <form action="{% url 'sdr_delete_all_spectrograms' %}" method="post" class="d-inline">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Delete ALL spectrograms? This cannot be undone.');"><i class="bi bi-trash me-1"></i>Delete all</button>
-                            </form>
-                            {% endif %}
-                        </div>
-                    </th>
+                    <th colspan="2"></th>
                 </tr>
                 <tr>
                     {% include "generic/headers/sort.html" with name="Device" field="device_name" col="1" %}

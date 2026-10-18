@@ -7,6 +7,11 @@
 {% block section_content %}
 <div class="row mt-2">
     <div class="col-12">
+        <div class="list-actions">
+            <input type="hidden" id="input_order_by" value="{{ order_by }}" name="order_by" form="filters">
+            <button type="submit" class="btn btn-primary btn-sm" form="filters"><i class="bi bi-funnel me-1"></i>Filter</button>
+            <a href="?reset" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</a>
+        </div>
         <div class="table-responsive">
             <form id="filters" action="{% url 'sdr_gain_tests' %}" method="get"></form>
             <table class="table table-hover align-middle list-table">
@@ -14,13 +19,7 @@
                 <tr>
                     {% include "generic/headers/filter_string.html" with field="name" form_id="filters" %}
                     {% include "generic/headers/filter_number.html" with field="datetime" mode="datetime" form_id="filters" %}
-                    <th>
-                        <div class="list-toolbar">
-                            <input type="hidden" id="input_order_by" value="{{ order_by }}" name="order_by" form="filters">
-                            <button type="submit" class="btn btn-primary btn-sm" form="filters"><i class="bi bi-funnel me-1"></i>Filter</button>
-                            <a href="?reset" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</a>
-                        </div>
-                    </th>
+                    <th></th>
                 </tr>
                 <tr>
                     {% include "generic/headers/sort.html" with name="Name" field="name" col="4" %}

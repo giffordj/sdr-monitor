@@ -7,10 +7,23 @@
 {% block section_content %}
 <div class="row mt-2">
     <div class="col-12">
+        <div class="list-actions">
+            <input type="hidden" id="input_order_by" value="{{ order_by }}" name="order_by" form="filters">
+            <button type="submit" class="btn btn-primary btn-sm" form="filters"><i class="bi bi-funnel me-1"></i>Filter</button>
+            <a href="{% url 'sdr_groups' %}?reset" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</a>
+        </div>
         <div class="table-responsive">
             <form id="filters" action="{% url 'sdr_groups' %}" method="get"></form>
             <form id="add-group" action="{% url 'sdr_add_group' %}" method="post">{% csrf_token %}</form>
-            <table id="groups-table" class="table table-hover align-middle list-table">
+            <table id="groups-table" class="table table-hover align-middle list-table fixed-cols">
+                <colgroup>
+                    <col style="width: 26%;">
+                    <col style="width: 15%;">
+                    <col style="width: 15%;">
+                    <col style="width: 12%;">
+                    <col style="width: 12%;">
+                    <col style="width: 20%;">
+                </colgroup>
                 <thead>
                 <tr>
                     {% include "generic/headers/filter_string.html" with field="name" options=name_options form_id="filters" %}
@@ -18,13 +31,7 @@
                     {% include "generic/headers/filter_number.html" with field="end_frequency" unit="MHz" form_id="filters" %}
                     {% include "generic/headers/filter_string.html" with field="modulation" options=modulation_options form_id="filters" %}
                     {% include "generic/headers/filter_number.html" with field="transmissions_count" form_id="filters" %}
-                    <th>
-                        <div class="list-toolbar">
-                            <input type="hidden" id="input_order_by" value="{{ order_by }}" name="order_by" form="filters">
-                            <button type="submit" class="btn btn-primary btn-sm" form="filters"><i class="bi bi-funnel me-1"></i>Filter</button>
-                            <a href="{% url 'sdr_groups' %}?reset" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</a>
-                        </div>
-                    </th>
+                    <th></th>
                 </tr>
                 <tr>
                     {% include "generic/headers/sort.html" with name="Name" field="name" col="1" %}
