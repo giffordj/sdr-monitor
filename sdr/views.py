@@ -338,17 +338,112 @@ def radio(request):
 
 @staff_member_required()
 def logs(request):
-    return common.utils.files.get_directory_as_archive_response([(monitor.settings.LOG_DIR, "logs")], "logs")
+    """Panel-native log viewer (staff): tail of the selected log file."""
+    import datetime
+
+    log_dir = monitor.settings.LOG_DIR
+    files = []
+    if log_dir and os.path.isdir(log_dir):
+        for name in os.listdir(log_dir):
+            path = os.path.join(log_dir, name)
+            if os.path.isfile(path):
+                stat = os.stat(path)
+                files.append({
+                    "name": name,
+                    "size": stat.st_size,
+                    "mtime": datetime.datetime.fromtimestamp(stat.st_mtime),
+                })
+        files.sort(key=lambda item: item["mtime"], reverse=True)
+    selected = request.GET.get("file", "")
+    if not selected and files:
+        selected = files[0]["name"]
+    content = ""
+    if selected and log_dir:
+        path = os.path.join(log_dir, os.path.basename(selected))
+        if os.path.isfile(path):
+            with open(path, "rb") as file:
+                file.seek(max(0, os.path.getsize(path) - 200 * 1024))
+                text = file.read().decode("utf-8", "replace")
+            content = "\n".join(text.splitlines()[-2000:])
+    return render(request, "logs.html", {"files": files, "selected": selected, "content": content})
 
 
 @staff_member_required()
-def data(request):
-    return common.utils.files.get_directory_as_archive_response([os.path.join(monitor.settings.BASE_DIR, "data")], "data")
+def support_bundle(request):
+    """One support bundle: logs, scanner config/status and versions."""
+    import hashlib
+    import io
+    import json
+    import platform
+    import tarfile
+    import tempfile
+    import time
+    import django
+    import sdr.utils.scanner_config
+    from django.http import FileResponse
+    from django.utils import timezone
 
+    def sha256(path):
+        try:
+            with open(path, "rb") as file:
+                return hashlib.sha256(file.read()).hexdigest()
+        except OSError:
+            return "n/a"
 
-@staff_member_required()
-def all(request):
-    return common.utils.files.get_directory_as_archive_response([(monitor.settings.LOG_DIR, "logs"), os.path.join(monitor.settings.BASE_DIR, "data")], "all")
+    status = {}
+    try:
+        status = sdr.utils.scanner_mqtt.get_status(timeout=4) or {}
+    except Exception:
+        status = {}
+    if not status:
+        try:
+            status = sdr.utils.scanner_mqtt.read_cache() or {}
+        except Exception:
+            status = {}
+
+    scanner_versions = ", ".join(
+        "%s=%s" % (scanner_id, scanner.get("version")) for scanner_id, scanner in status.items()
+    )
+    versions = "\n".join([
+        "date: %s" % timezone.now().isoformat(),
+        "hostname: %s" % platform.node(),
+        "platform: %s" % platform.platform(),
+        "python: %s" % platform.python_version(),
+        "django: %s" % django.get_version(),
+        "scanner: %s" % (scanner_versions or "unknown"),
+        "requirements.lock sha256: %s" % sha256(os.path.join(monitor.settings.BASE_DIR, "requirements.lock")),
+    ]) + "\n"
+    readme = """SDR Monitor support bundle
+
+logs/                  panel and scanner logs
+scanner/config.json    scanner configuration
+scanner/status.json    scanner status (devices, ranges, version)
+versions.txt           panel/scanner versions and build info
+
+No database, static assets or secrets are included.
+"""
+
+    buffer = tempfile.SpooledTemporaryFile(max_size=64 * 1024 * 1024, mode="w+b")
+    with tarfile.open(fileobj=buffer, mode="w:gz") as tar:
+        log_dir = monitor.settings.LOG_DIR
+        if log_dir and os.path.isdir(log_dir):
+            tar.add(log_dir, arcname="logs")
+        config_path = sdr.utils.scanner_config.CONFIG_PATH
+        if os.path.isfile(config_path):
+            tar.add(config_path, arcname="scanner/config.json")
+        for name, data in (
+            ("scanner/status.json", json.dumps(status, indent=2, sort_keys=True)),
+            ("versions.txt", versions),
+            ("README.txt", readme),
+        ):
+            payload = data.encode("utf-8")
+            info = tarfile.TarInfo(name)
+            info.size = len(payload)
+            info.mtime = time.time()
+            tar.addfile(info, io.BytesIO(payload))
+    buffer.seek(0)
+    filename = "support-%s.tar.gz" % timezone.now().strftime("%Y%m%d-%H%M%S")
+    return FileResponse(buffer, as_attachment=True, filename=filename)
 
 
 class SatellitesForm(forms.Form):

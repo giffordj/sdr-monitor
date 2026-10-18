@@ -1,0 +1,38 @@
+{% extends "generic/section_big.html" %}
+{% load i18n %}
+{% load sdr_filters %}
+
+{% block section_title %}Debug logs{% endblock %}
+
+{% block section_content %}
+<div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+    <form method="get" class="d-flex flex-wrap align-items-center gap-2">
+        <label for="file" class="form-label mb-0 text-nowrap">Log file</label>
+        <select id="file" name="file" class="form-select form-select-sm" style="min-width: 300px;" onchange="this.form.submit()">
+            {% for f in files %}
+            <option value="{{ f.name }}" {% if f.name == selected %}selected{% endif %}>{{ f.name }} &mdash; {{ f.size|natural_size }}, {{ f.mtime|date:"Y-m-d H:i" }}</option>
+            {% empty %}
+            <option value="">No logs found</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+    </form>
+    <a href="{% url 'sdr_support_bundle' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i>Download support bundle</a>
+</div>
+<p class="text-muted small mb-2">Showing the last 2,000 lines of the selected file. The support bundle contains the full logs, the scanner configuration and status, and version information.</p>
+<pre class="log-view">{{ content }}</pre>
+<style>
+.log-view {
+    background: #0b0f14;
+    color: #cfe0c2;
+    border: 1px solid #26302a;
+    border-radius: .5rem;
+    padding: 1rem;
+    max-height: 70vh;
+    overflow: auto;
+    font-size: .78rem;
+    line-height: 1.35;
+    white-space: pre;
+}
+</style>
+{% endblock %}

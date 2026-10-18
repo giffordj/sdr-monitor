@@ -68,9 +68,8 @@
                             {% if user.is_authenticated and user.is_staff %}
                             <li><a href="{% url 'admin:index' %}">{% trans "ADMIN PANEL" %}</a></li>
                             {% endif %}
-                            <li><a href="{% url 'sdr_logs' %}">{% trans "DOWNLOAD LOGS" %}</a></li>
-                            <li><a href="{% url 'sdr_data' %}">{% trans "DOWNLOAD DATA" %}</a></li>
-                            <li><a href="{% url 'sdr_all' %}">{% trans "DOWNLOAD ALL" %}</a></li>
+                            <li><a href="{% url 'sdr_logs' %}">Debug logs</a></li>
+                            <li><a href="{% url 'sdr_support_bundle' %}">Support bundle</a></li>
                         </ul>
                     </li>
                     <li><a href="#" id="theme-toggle" title="Toggle dark mode"><i class="bi bi-moon"></i></a></li>
