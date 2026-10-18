@@ -6,7 +6,16 @@ Updates to this fork are made **manually and with AI assistance**
 (DevPass Code); every change is reviewed, tested and deployed by a human.
 
 
+## 2026-10-18
+- ui(radio): replace the S-120 knobs and the receive rocker with digital controls - volume slider, fine-tune input with +/- buttons, Receive/Standby buttons, and explicit Scanner on/Scanner off buttons
+- ui(radio): default volume is 40% (also the knob double-click reset)
+- ui(config): scanner and SDR-device selection as tabs in the settings format instead of radio dots (first device selected automatically)
+- feat(radio): Listen on a transmission tunes the radio to its frequency/mode and receiving dongle, stops the scanner first, then starts the receiver
+
 ## 2026-10-17
+- build(deps): build upstream librtlsdr 2.0.3, SoapySDR 0.9.0 and SoapyRTLSDR 0.3.4 from source (distro packages were stale); scanner rebuilt against SoapySDR 0.9
+- fix(drawer): spectrogram power legend labels the min/max and tightens the step for narrow ranges (HF rows no longer show a single number)
+- fix(drawer): pad and vertically clamp spectrogram time labels, add a blank bottom margin (no more cut-off look) and a dB unit on the power legend; short rows now keep their timing (scaled font, first sample always labelled) and every data row is written
 - build(deps): refresh and pin vendored static libs (Bootstrap 5.3.8 bundle+css, icons 1.13.1, moment 2.31.0), drop duplicate bootstrap.js and unused flag-icons; add requirements.lock, yamnet checksums, digest-pinned base image, CI asset check
 - fix(radio): B.F.O. knob must not cycle modes while being dragged (click-only control)
 - feat(radio): dongle selector (SDR_RADIO_DEVICES) + always-available scanner on/off button; per-device rtl index, borrow serial and HF handling

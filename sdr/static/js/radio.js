@@ -23,6 +23,7 @@ var BANDS = [
     {label: "FM broadcast", min: 88000000, max: 108000000, freq: 101100000, mode: "WFM"},
     {label: "Airband", min: 118000000, max: 137000000, freq: 121500000, mode: "AM"},
     {label: "2m ham", min: 144000000, max: 148000000, freq: 146520000, mode: "FM"},
+    {label: "VHF high 148-174", min: 148000000, max: 174000000, freq: 155000000, mode: "FM"},
     {label: "NOAA weather", min: 162400000, max: 162550000, freq: 162550000, mode: "FM"},
     {label: "70cm ham", min: 420000000, max: 450000000, freq: 446000000, mode: "FM"},
     {label: "Public safety", min: 450000000, max: 470000000, freq: 460000000, mode: "FM"},
@@ -40,7 +41,11 @@ var BFO_MODES = ["AM", "USB", "LSB"];
 
 // base = frequency set with the TUNING knob, fine = BAND SPREAD offset (Hz);
 // the received frequency is base + fine, like the real bandspread control.
-var current = {band: 0, base: BANDS[0].freq, freq: BANDS[0].freq, mode: BANDS[0].mode, fine: 0, volume: 0.8};
+var current = {band: 0, base: BANDS[0].freq, freq: BANDS[0].freq, mode: BANDS[0].mode, fine: 0, volume: 0.4};
+// Set by "Listen" on the transmissions page: select the receiving dongle and
+// stop the scanner before starting the receiver.
+var pendingDevice = null;
+var pendingListen = false;
 var radioDevices = [];
 var radioDeviceChosen = false;
 var radioScannerRunning = false;
@@ -60,7 +65,7 @@ $(document).ready(function () {
     $("#radio_mode").change(function () {
         current.mode = $(this).val();
         $("#radio_mode_label").text(current.mode);
-        $("#knob_bfo_val").text(current.mode);
+        $("#radio_mode_label").text(current.mode);
         if (radioPlaying) tuneRemote();
     });
     $("#radio_gain").on("input", function () {
@@ -79,7 +84,6 @@ $(document).ready(function () {
         }
     });
     $("#radio_record").click(function () { toggleRecord(); });
-    $("#radio_scanner_toggle").click(function () { scannerToggle(); });
 
     // radio dongle selector: switching while listening restarts the receiver
     $("#radio_device").change(function () {
@@ -92,31 +96,22 @@ $(document).ready(function () {
     // band selector buttons (1-4)
     $("#radio_bandsel button").click(function () { applyBand(parseInt($(this).data("band"))); });
 
-    // receive / standby rocker
-    $("#radio_receive").click(function () { radioPlaying ? stopRadio() : startRadio(); });
-    $("#radio_receive").on("keydown", function (e) {
-        if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            radioPlaying ? stopRadio() : startRadio();
+    // digital controls (the S-120 knobs were replaced: clearer to operate)
+    $("#radio_volume").on("input change", function () {
+        setVolume(parseInt($(this).val(), 10) / 100);
+    });
+    $("#radio_fine").on("input change", function () {
+        let value = parseInt($(this).val(), 10);
+        if (!isNaN(value)) {
+            setFine(value);
         }
     });
-
-    // knobs: drag vertically, wheel, arrow keys; double-click resets where useful
-    bindKnob(document.getElementById("knob_tune"), function (units) {
-        let band = BANDS[current.band];
-        let perUnit = (band.max - band.min) / 400;
-        setBase(current.base + units * perUnit, true);
-    }, null, stepHz());
-    bindKnob(document.getElementById("knob_volume"), function (units) {
-        setVolume(current.volume + units * 0.02);
-    }, function () { setVolume(0.8); }, 0.02);
-    bindKnob(document.getElementById("knob_spread"), function (units) {
-        setFine(current.fine + units * 150);
-    }, function () { setFine(0); }, 500);
-    bindKnob(document.getElementById("knob_bfo"), function () { cycleMode(); }, null, 0, true);
-
-    // band spread strip: drag to trim the fine offset
-    bindStrip(document.getElementById("radio_spread"));
+    $("#radio_fine_down").click(function () { setFine(current.fine - 100); });
+    $("#radio_fine_up").click(function () { setFine(current.fine + 100); });
+    $("#radio_receive_on").click(function () { if (!radioPlaying) { startRadio(); } });
+    $("#radio_receive_off").click(function () { if (radioPlaying) { stopRadio(); } });
+    $("#radio_scanner_on").click(function () { scannerSet(true); });
+    $("#radio_scanner_off").click(function () { scannerSet(false); });
 
     $("#radio_gain_val").text("Auto");
     setVolume(current.volume);
@@ -196,7 +191,7 @@ function applyBand(index, remote) {
     $("#radio_mode").val(band.mode);
     current.mode = band.mode;
     $("#radio_mode_label").text(band.mode);
-    $("#knob_bfo_val").text(band.mode);
+    $("#radio_mode_label").text(band.mode);
     $("#radio_bandsel button").removeClass("on");
     if (band.dial) {
         $("#radio_bandsel button[data-band=" + (band.dial - 1) + "]").addClass("on");
@@ -229,6 +224,7 @@ function setBase(hz, remote) {
 
 function setFine(hz) {
     current.fine = Math.round(Math.max(-10000, Math.min(10000, hz)));
+    $("#radio_fine").val(current.fine);
     renderFreq();
     if (radioPlaying) {
         tuneRemote();
@@ -241,8 +237,8 @@ function setVolume(value) {
     if (audio) {
         audio.volume = current.volume;
     }
-    $("#knob_volume_val").text(Math.round(current.volume * 100) + "%");
-    setKnobAngle("knob_volume", -135 + current.volume * 270);
+    $("#radio_volume").val(Math.round(current.volume * 100));
+    $("#radio_volume_val").text(Math.round(current.volume * 100) + "%");
 }
 
 function cycleMode() {
@@ -250,8 +246,7 @@ function cycleMode() {
     current.mode = BFO_MODES[index];
     $("#radio_mode").val(current.mode);
     $("#radio_mode_label").text(current.mode);
-    $("#knob_bfo_val").text(current.mode);
-    setKnobAngle("knob_bfo", -135 + index / (BFO_MODES.length - 1) * 270);
+    $("#radio_mode_label").text(current.mode);
     if (radioPlaying) {
         tuneRemote();
         toast("B.F.O. " + current.mode, "secondary");
@@ -271,14 +266,7 @@ function renderFreq() {
     }
     renderFreqInput(effective);
 
-    // band spread strip + label
-    $("#radio_spread_cursor").css("left", (50 + current.fine / 10000 * 50) + "%");
-    $("#radio_spread_label").text(
-        current.fine === 0 ? "fine tune" :
-            "fine " + (current.fine > 0 ? "+" : "") + (current.fine / 1000).toFixed(2) + " kHz"
-    );
-    $("#knob_spread_val").text((current.fine > 0 ? "+" : "") + current.fine + " Hz");
-    setKnobAngle("knob_spread", -135 + ((current.fine / 10000) + 1) * 135);
+    $("#radio_fine").val(current.fine);
 
     // dial chips + row highlight
     for (let dial = 1; dial <= 4; dial++) {
@@ -297,11 +285,6 @@ function renderFreq() {
         }
     }
 
-    // tuning knob + value
-    let band = BANDS[current.band];
-    let pct = (current.base - band.min) / (band.max - band.min);
-    setKnobAngle("knob_tune", -135 + Math.max(0, Math.min(1, pct)) * 270);
-    $("#knob_tune_val").text(current.base >= 1e6 ? (current.base / 1e6).toFixed(3) + " MHz" : (current.base / 1e3).toFixed(0) + " kHz");
 }
 
 function setKnobAngle(id, degrees) {
@@ -453,9 +436,9 @@ function bindStrip(el) {
 
 // --- receiver control -----------------------------------------------------
 
-function scannerToggle() {
-    let on = !radioScannerRunning;
-    $("#radio_scanner_toggle").prop("disabled", true);
+function scannerSet(on) {
+    $("#radio_scanner_on").prop("disabled", true);
+    $("#radio_scanner_off").prop("disabled", true);
     $.ajax({
         url: radioScannerApi,
         type: "POST",
@@ -473,13 +456,14 @@ function scannerToggle() {
                 message = JSON.parse(xhr.responseText).errors.join(" ");
             } catch (e) {}
             toast(message, "danger");
-        })
-        .always(function () { $("#radio_scanner_toggle").prop("disabled", false); });
+            $("#radio_scanner_on").prop("disabled", false);
+            $("#radio_scanner_off").prop("disabled", false);
+        });
 }
 
 function updateReceiveUI() {
-    $("#radio_receive").toggleClass("on", radioPlaying).attr("aria-checked", radioPlaying ? "true" : "false");
-    $("#radio_receive_label").text(radioPlaying ? "Receive" : "Standby");
+    $("#radio_receive_on").toggleClass("btn-success", radioPlaying).toggleClass("btn-outline-success", !radioPlaying);
+    $("#radio_receive_off").toggleClass("btn-secondary", !radioPlaying).toggleClass("btn-outline-secondary", radioPlaying);
 }
 
 function startRadio() {
@@ -536,10 +520,8 @@ function renderStatus(st) {
     $("#radio_scanner").text(st.scanner || "?");
     $("#radio_mode_label").text(st.mode || current.mode);
     radioScannerRunning = (st.scanner === "RUNNING");
-    $("#radio_scanner_toggle")
-        .text("Scanner: " + (radioScannerRunning ? "on" : "off"))
-        .toggleClass("btn-success", radioScannerRunning)
-        .toggleClass("btn-outline-secondary", !radioScannerRunning);
+    $("#radio_scanner_on").prop("disabled", radioScannerRunning);
+    $("#radio_scanner_off").prop("disabled", !radioScannerRunning);
     if (st.devices && st.devices.length && !radioDevices.length) {
         radioDevices = st.devices;
         st.devices.forEach(function (device) {
@@ -559,6 +541,30 @@ function renderStatus(st) {
     }
     let pct = Math.max(0, Math.min(1, (st.rms || 0) * 8));
     $("#radio_meter_needle").css("left", (pct * 100) + "%");
+
+    // Deferred "Listen" handling: the device options only exist after the first
+    // status response, so the selection and auto-start happen here.
+    if (pendingDevice) {
+        $("#radio_device option").each(function () {
+            if (this.text.indexOf(pendingDevice) === 0 || this.value === pendingDevice) {
+                $("#radio_device").val($(this).val());
+                pendingDevice = null;
+            }
+        });
+    }
+    if (pendingListen && $("#radio_device option").length > 0) {
+        pendingListen = false;
+        // Stop scanning so the receiver can use the dongle cleanly.
+        $.ajax({
+            url: radioScannerApi,
+            type: "POST",
+            contentType: "application/json",
+            headers: {"X-CSRFToken": radioCsrf},
+            data: JSON.stringify({action: "stop"}),
+        }).always(function () {
+            setTimeout(startRadio, 1200);
+        });
+    }
 }
 
 function statusPoll() {
@@ -571,13 +577,15 @@ function handleQuery() {
     let params = new URLSearchParams(window.location.search);
     let mode = params.get("mode");
     let freq = params.get("f");
+    let device = params.get("device");
+    pendingListen = params.get("listen") === "1";
+    pendingDevice = device || null;
     if (mode) {
         mode = mode.toUpperCase();
         if (["WFM", "FM", "AM", "USB", "LSB"].indexOf(mode) >= 0) {
             current.mode = mode;
             $("#radio_mode").val(mode);
             $("#radio_mode_label").text(mode);
-            $("#knob_bfo_val").text(mode);
         }
     }
     if (freq) {
@@ -591,6 +599,11 @@ function handleQuery() {
                     $("#radio_mode").val(mode);
                 }
                 setBase(hz, false);
+            } else {
+                // Outside the dial bands: still tune to the exact frequency.
+                current.base = Math.round(Math.max(MIN_HZ, Math.min(MAX_HZ, hz)));
+                current.fine = 0;
+                renderFreq();
             }
         }
     }

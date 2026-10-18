@@ -32,14 +32,6 @@
 
     {# ---- slide-rule dial ---- #}
     <div class="dial">
-        <div class="spread-row">
-            <div class="band-cell">Band spread</div>
-            <div class="spread-strip" id="radio_spread">
-                <div class="cursor" id="radio_spread_cursor"></div>
-                <div class="spread-label" id="radio_spread_label">fine tune</div>
-            </div>
-            <div class="right-cell">set to 100</div>
-        </div>
         <div class="dial-row" id="dial_row_1">
             <div class="band-cell"><span class="num">Band 1</span> <span class="mode">AM</span></div>
             <div class="track" id="dial_track_1"><span class="dial-chip" id="dial_chip_1"></span></div>
@@ -62,30 +54,15 @@
         </div>
     </div>
 
-    {# ---- control face ---- #}
+    {# ---- control face (digital controls; the old knobs were clunky) ---- #}
     <div class="face">
-        <div class="knob-cell tight">
-            <div class="knob" id="knob_spread" tabindex="0" role="slider" aria-label="Band spread fine tune"><div class="pointer"></div><div class="cap"></div></div>
-            <div class="knob-label">Band spread</div>
-            <div class="knob-value" id="knob_spread_val">0 Hz</div>
-        </div>
-        <div class="knob-cell">
-            <div class="knob" id="knob_volume" tabindex="0" role="slider" aria-label="Volume"><div class="pointer"></div><div class="cap"></div></div>
-            <div class="knob-label">Volume</div>
-            <div class="knob-value" id="knob_volume_val">80%</div>
-        </div>
         <div class="knob-cell tight">
             <div class="phones" title="Phones"></div>
             <div class="knob-label">Phones</div>
         </div>
-        <div class="knob-cell tight">
-            <div class="knob" id="knob_bfo" tabindex="0" role="button" aria-label="B.F.O. mode select"><div class="pointer"></div><div class="cap"></div></div>
-            <div class="knob-label">B.F.O.</div>
-            <div class="knob-value" id="knob_bfo_val">AM</div>
-        </div>
-        <div class="knob-cell tight">
-            <div class="receive" id="radio_receive" role="switch" aria-checked="false" tabindex="0"><div class="paddle"></div></div>
-            <div class="knob-label" id="radio_receive_label">Standby</div>
+        <div class="knob-cell">
+            <label class="knob-label" for="radio_volume">Volume <span id="radio_volume_val">40%</span></label>
+            <input id="radio_volume" type="range" min="0" max="100" step="1" value="40" class="form-range">
         </div>
         <div class="knob-cell">
             <div class="bandsel" id="radio_bandsel">
@@ -97,9 +74,15 @@
             <div class="knob-label mt-2">Band selector</div>
         </div>
         <div class="knob-cell">
-            <div class="knob tuning" id="knob_tune" tabindex="0" role="slider" aria-label="Tuning"><div class="pointer"></div><div class="cap"></div></div>
-            <div class="knob-label">Tuning</div>
-            <div class="knob-value" id="knob_tune_val">&mdash;</div>
+            <div class="d-flex gap-2">
+                <button id="radio_receive_on" class="btn btn-sm btn-success" type="button">Receive</button>
+                <button id="radio_receive_off" class="btn btn-sm btn-outline-secondary" type="button">Standby</button>
+            </div>
+            <div class="d-flex gap-2 mt-2">
+                <button id="radio_scanner_on" class="btn btn-sm btn-success" type="button">Scanner on</button>
+                <button id="radio_scanner_off" class="btn btn-sm btn-outline-secondary" type="button">Scanner off</button>
+            </div>
+            <div class="knob-label mt-2">Receiver</div>
         </div>
     </div>
 
@@ -138,6 +121,14 @@
             </div>
         </div>
         <div>
+            <label for="radio_fine">Fine tune (Hz)</label>
+            <div class="input-group input-group-sm">
+                <button id="radio_fine_down" class="btn btn-outline-light btn-sm" type="button">&minus;</button>
+                <input id="radio_fine" type="number" step="100" value="0" class="form-control" style="max-width:92px;">
+                <button id="radio_fine_up" class="btn btn-outline-light btn-sm" type="button">+</button>
+            </div>
+        </div>
+        <div>
             <label for="radio_device">Radio device</label>
             <select id="radio_device" class="form-select form-select-sm"></select>
         </div>
@@ -145,7 +136,6 @@
             <label>Session</label>
             <div class="d-flex gap-2 align-items-center">
                 <button id="radio_record" class="btn btn-sm btn-outline-danger" disabled>Record</button>
-                <button id="radio_scanner_toggle" class="btn btn-sm btn-success" type="button">Scanner: ...</button>
             </div>
         </div>
         <div class="meter">

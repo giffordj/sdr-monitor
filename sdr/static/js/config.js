@@ -91,7 +91,6 @@ function loadConfig() {
                 addScanner(scanner, scanner_id);
                 count += 1;
                 if (selectedScannerId === null) {
-                    $("input[name=scanner_selector]").last().prop("checked", true);
                     selectScanner(scanner, scanner_id);
                 }
             }
@@ -244,33 +243,41 @@ function scannerLabel(scanner, scanner_id) {
     return names.length ? names.join(" + ") : "scanner #" + scanner_id;
 }
 
+function addSelectorTab(container, label, badgeHtml, onSelect) {
+    // Scanner/device selection as tabs (same format as the settings tabs)
+    // instead of small radio dots. The container is a Bootstrap .nav.nav-tabs.
+    let item = document.createElement("div");
+    $(item).addClass("nav-item");
+
+    let b = document.createElement("button");
+    $(b).addClass("nav-link");
+    $(b).prop("type", "button");
+    $(b).text(label);
+    if (badgeHtml) {
+        $(b).append(badgeHtml);
+    }
+    $(b).click(function () {
+        $(container).find(".nav-link").removeClass("active");
+        $(b).addClass("active");
+        onSelect();
+    });
+
+    $(item).append(b);
+    $(container).append(item);
+    return b;
+}
+
 function addScanner(scanner, scanner_id) {
-    let d = document.createElement("div");
-    $(d).addClass('form-check');
-
-    let i = document.createElement("input");
-    $(i).addClass('form-check-input');
-    $(i).prop("type", "radio");
-    $(i).prop("name", "scanner_selector");
-    $(i).click(function () {
+    let b = addSelectorTab("#scanner_selector", scannerLabel(scanner, scanner_id), null, function () {
         selectScanner(scanner, scanner_id);
     });
-
-    let l = document.createElement("label");
-    $(l).addClass("form-check-label");
-    $(l).append(scannerLabel(scanner, scanner_id));
-    $(l).click(function () {
-        $(i).prop('checked', true);
-        selectScanner(scanner, scanner_id);
-    });
-
-    $(d).append(i);
-    $(d).append(l);
-    $("#scanner_selector").append(d);
+    $(b).attr("data-scanner-id", scanner_id);
 }
 
 function selectScanner(scanner, scanner_id) {
     selectedScannerId = scanner_id;
+    $("#scanner_selector").find(".nav-link").removeClass("active");
+    $("#scanner_selector").find("[data-scanner-id='" + scanner_id + "']").addClass("active");
     updateInput(scanner, '#transmission_tunning_step', ['recording', 'step']);
     updateInput(scanner, '#transmission_max_noise_time_ms', ['recording', 'max_noise_time_ms']);
     updateInput(scanner, "#transmission_min_time_ms", ['recording', 'min_time_ms']);
@@ -285,9 +292,13 @@ function selectScanner(scanner, scanner_id) {
 
     $("#device_selector").empty();
     $("#ignored_frequencies").find("tr:gt(0)").remove();
-    (scanner['devices'] || []).forEach(function (device) {
+    let devices = scanner['devices'] || [];
+    devices.forEach(function (device) {
         addDevice(scanner, device);
     });
+    if (devices.length > 0) {
+        selectDevice(scanner, devices[0]);
+    }
     (scanner['ignored_frequencies'] || []).forEach(function (range) {
         addIgnoredFrequency(scanner['ignored_frequencies'], range);
     });
@@ -301,46 +312,17 @@ function selectScanner(scanner, scanner_id) {
 }
 
 function addDevice(scanner, device) {
-    let d = document.createElement("div");
-    $(d).addClass('form-check');
-
-    let i = document.createElement("input");
-    $(i).addClass('form-check-input');
-    $(i).prop("type", "radio");
-    $(i).prop("name", "device_selector");
-    $(i).click(function () {
-        selectDevice(scanner, device);
-    });
-
-    let l = document.createElement("label");
-    $(l).addClass("form-check-label");
     let name = (device["driver"] ? device["driver"] + " - " : "") + device["serial"];
     if (device["alias"]) {
         name += " (" + device["alias"] + ")";
     }
-    $(l).append(name);
-    $(l).click(function () {
-        $(i).prop('checked', true);
+    let badge = device['connected']
+        ? '<span class="badge bg-success ms-2">connected</span>'
+        : '<span class="badge bg-secondary ms-2">not connected</span>';
+    let b = addSelectorTab("#device_selector", name, badge, function () {
         selectDevice(scanner, device);
     });
-
-    $(d).append(i);
-    $(d).append(l);
-
-    let a = document.createElement("span");
-    $(a).addClass("mx-2");
-    $(a).addClass("badge");
-    if (device['connected']) {
-        $(a).addClass("bg-success");
-        $(a).html("connected");
-    }
-    else {
-        $(a).addClass("bg-secondary");
-        $(a).html("not connected");
-    }
-    $(d).append(a);
-
-    $("#device_selector").append(d);
+    $(b).attr("data-device-serial", device["serial"]);
 }
 
 function setValue(element, keys, value) {
@@ -385,6 +367,8 @@ function addIgnoredFrequency(ranges, range) {
 }
 
 function selectDevice(scanner, device) {
+    $("#device_selector").find(".nav-link").removeClass("active");
+    $("#device_selector").find("[data-device-serial='" + device["serial"] + "']").addClass("active");
     // The device section is always available in the "SDR device settings" tab;
     // the badge already communicates connection state.
     let setInputsEnabled = function (enabled) {

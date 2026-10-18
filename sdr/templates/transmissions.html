@@ -87,7 +87,7 @@
                         <a href="{% url 'sdr_transmission' transmission.id %}" class="btn btn-primary">open</a>
                     </td>
                     <td class="py-1" data-column="action">
-                        <a href="{% url 'sdr_radio' %}?f={{ transmission.frequency|floatformat:0 }}&mode={{ transmission.modulation }}" class="btn btn-warning btn-sm">Listen</a>
+                        <a href="{% url 'sdr_radio' %}?f={{ transmission.frequency|floatformat:0 }}&mode={{ transmission.modulation }}&device={{ transmission.device_name|urlencode }}&listen=1" class="btn btn-warning btn-sm">Listen</a>
                         <form action="{% url 'sdr_delete_transmission' transmission.id %}" method="post" class="d-inline">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-danger btn-sm">Delete</button>

@@ -6,10 +6,10 @@ the scanner is stopped, and it is started again when you stop listening.
 
 ## Constraints
 
-- **Two RTL-SDR dongles on destiny** (dual-dongle mode):
+- **Two RTL-SDR dongles on the SDR host** (dual-dongle mode):
   - `0` = **Nooelec NESDR SMArt v5** (serial `66687725`) — the scanner.
   - `1` = **RTL-SDR Blog V4** (serial `00000001`) — the radio (HF + VHF/UHF).
-- **Pause-and-borrow mode** (what destiny runs): **both** dongles scan — the
+- **Pause-and-borrow mode** (the default deployment): **both** dongles scan — the
   NESDR over VHF/UHF and the V4 over the shortwave bands (HF ranges in the
   scanner's `data/config.json`). When the radio starts, the server disables the
   V4 in the scanner config **live over MQTT** (`SDR_RADIO_PAUSE_SERIAL=00000001`),
@@ -53,7 +53,7 @@ the scanner is stopped, and it is started again when you stop listening.
 
 ## Status (delivered)
 
-All phases shipped and running on destiny (image built by CI → Forgejo registry):
+All phases shipped and running on the SDR host (image built by CI):
 
 1. **Foundation** — Dockerfile adds `rtl-sdr`/`sox`/`lame` and a supervisord
    control socket (`/var/run/sdr/supervisor.sock`) so the radio can stop/start
@@ -74,7 +74,7 @@ for the live stream.
 
 ## Hardware note
 
-`destiny` runs **two dongles**: the NESDR SMArt v5 (~24 MHz–1.7 GHz) feeds the
+The SDR host runs **two dongles**: the NESDR SMArt v5 (~24 MHz–1.7 GHz) feeds the
 scanner, and the **RTL-SDR Blog V4** (24 MHz–1.7 GHz + real HF upconverter)
 feeds the radio. The V4 is currently on the **RTL-SDR Blog dipole kit** (long
 whips) — fine for strong shortwave broadcasters; a long wire or active loop

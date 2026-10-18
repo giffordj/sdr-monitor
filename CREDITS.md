@@ -12,7 +12,7 @@ changes, server-side configuration API, noise auto-deletion, and more).
 Without shajen's original web panel this project would not exist. Thank you.
 
 ## This fork
-- **This fork** — <https://forgejo.docker.jg555.com/giffordj/sdr-monitor>
+- **This fork** — <https://github.com/giffordj/sdr-monitor>
 - Maintainer: **Jim Gifford** (`jg555`)
 - Modifications released under the same license as the original.
 

@@ -12,7 +12,7 @@ Two deployment modes:
   *also* scans (e.g. the V4 over the shortwave bands). Starting the radio
   disables that device in the scanner config live (over MQTT), uses the dongle
   for listening, and re-enables it on stop — the other dongle never stops
-  scanning. This is what destiny runs.
+  scanning. This is what the deployment runs.
 
 Dongles with a real HF upconverter (Blog V4) should set
 ``SDR_RADIO_HF_UPCONVERTER=1``: direct sampling (``-E direct2``) is skipped and

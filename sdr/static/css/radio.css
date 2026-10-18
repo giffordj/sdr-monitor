@@ -57,9 +57,13 @@
     padding: 6px 14px;
     box-shadow: inset 0 0 18px rgba(0, 0, 0, .8);
     min-width: 300px;
+    max-width: 100%;
+    flex-wrap: wrap;
 }
 
 .s120 .readout .digits {
+    flex-shrink: 0;
+    white-space: nowrap;
     font-family: "DejaVu Sans Mono", "Courier New", monospace;
     font-weight: 700;
     font-size: 2.5rem;
@@ -74,6 +78,8 @@
     font-size: 1rem;
     color: #cbb98a;
     letter-spacing: 2px;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .s120 .readout .chips {
@@ -488,4 +494,13 @@
     margin-top: 2px;
     text-transform: uppercase;
     letter-spacing: 1px;
+}
+
+/* digital controls on the face (knobs replaced 2026-10-18) */
+.s120 .face .form-range {
+    width: 130px;
+    margin: 10px auto 4px;
+}
+.s120 .face .btn {
+    font-size: .72rem;
 }

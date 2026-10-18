@@ -57,7 +57,7 @@ def setline(s, key, val):
     sys.exit("!! could not find where to insert " + key)
 
 for key, val in [
-    ('AUTHELIA_TRUSTED_PROXIES', '127.0.0.1,192.168.5.0/24'),
+    ('AUTHELIA_TRUSTED_PROXIES', '127.0.0.1'),
     ('AUTHELIA_ADMIN_GROUPS', 'admins'),
     ('AUTHELIA_ALL_STAFF', '1'),
     ('DJANGO_LOG_LEVEL', 'INFO'),
