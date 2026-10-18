@@ -10,7 +10,8 @@
         <div class="table-responsive">
             <form id="filters" action="{% url 'sdr_groups' %}" method="get"></form>
             <form id="add-group" action="{% url 'sdr_add_group' %}" method="post">{% csrf_token %}</form>
-            <table id="groups-table" class="table table-striped table-bordered table-hover align-middle">
+            <table id="groups-table" class="table table-hover align-middle list-table">
+                <thead>
                 <tr>
                     {% include "generic/headers/filter_string.html" with field="name" options=name_options form_id="filters" %}
                     {% include "generic/headers/filter_number.html" with field="begin_frequency" unit="MHz" form_id="filters" %}
@@ -18,9 +19,11 @@
                     {% include "generic/headers/filter_string.html" with field="modulation" options=modulation_options form_id="filters" %}
                     {% include "generic/headers/filter_number.html" with field="transmissions_count" form_id="filters" %}
                     <th>
-                        <input type="hidden" id="input_order_by" value="{{ order_by }}" name="order_by" form="filters">
-                        <input type="submit" class="btn btn-success" value="Filter" form="filters">
-                        <a href="{% url 'sdr_groups' %}?reset" class="btn btn-danger">Reset</a>
+                        <div class="list-toolbar">
+                            <input type="hidden" id="input_order_by" value="{{ order_by }}" name="order_by" form="filters">
+                            <button type="submit" class="btn btn-primary btn-sm" form="filters"><i class="bi bi-funnel me-1"></i>Filter</button>
+                            <a href="{% url 'sdr_groups' %}?reset" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</a>
+                        </div>
                     </th>
                 </tr>
                 <tr>
@@ -31,6 +34,8 @@
                     {% include "generic/headers/sort.html" with name="Transmissions" field="transmissions_count" col="1" %}
                     <th class="text-end" data-column="action" data-column-label="Action">Action</th>
                 </tr>
+                </thead>
+                <tbody>
                 {% for group in items %}
                 <tr class="group-row">
                     <td class="py-1">
@@ -63,7 +68,7 @@
                         <button type="button" class="btn btn-secondary btn-sm edit-only edit-cancel">Cancel</button>
                         <form action="{% url 'sdr_delete_group' group.id %}" method="post" class="d-inline view">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this group? Its transmissions move to the Default group.');">Delete</button>
+                            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Delete this group? Its transmissions move to the Default group.');">Delete</button>
                         </form>
                     </td>
                 </tr>
@@ -82,10 +87,11 @@
                     </th>
                     <th></th>
                     <th class="text-end text-nowrap">
-                        <input type="submit" class="btn btn-success" value="Add" form="add-group">
-                        <input type="reset" class="btn btn-secondary" value="Reset">
+                        <input type="submit" class="btn btn-primary btn-sm" value="Add" form="add-group">
+                        <input type="reset" class="btn btn-outline-secondary btn-sm" value="Reset">
                     </th>
                 </tr>
+                </tbody>
             </table>
         </div>
     </div>

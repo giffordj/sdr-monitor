@@ -25,7 +25,9 @@ Transmission - {{ transmission.frequency | frequency:2 }} - {{transmission.bandw
             </div>
             <div class="col-md-4">
                 <div class="text-muted small">Frequency</div>
-                <div>{{ transmission.frequency | frequency:2 }}</div>
+                <div>{{ transmission.frequency | frequency:2 }}
+                    <span class="badge rounded-pill band-badge text-bg-{{ transmission.frequency|band_tone }}">{{ transmission.frequency|band }}</span>
+                </div>
             </div>
             <div class="col-md-4">
                 <div class="text-muted small">Sample rate</div>

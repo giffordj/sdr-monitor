@@ -9,14 +9,17 @@
     <div class="col-12">
         <div class="table-responsive">
             <form id="filters" action="{% url 'sdr_gain_tests' %}" method="get"></form>
-            <table class="table table-striped table-bordered table-hover">
+            <table class="table table-hover align-middle list-table">
+                <thead>
                 <tr>
                     {% include "generic/headers/filter_string.html" with field="name" form_id="filters" %}
                     {% include "generic/headers/filter_number.html" with field="datetime" mode="datetime" form_id="filters" %}
                     <th>
-                        <input type="hidden" id="input_order_by" value="{{ order_by }}" name="order_by" form="filters">
-                        <input type="submit" class="btn btn-success" value="Filter" form="filters">
-                        <a href="?reset" class="btn btn-danger">Reset</a>
+                        <div class="list-toolbar">
+                            <input type="hidden" id="input_order_by" value="{{ order_by }}" name="order_by" form="filters">
+                            <button type="submit" class="btn btn-primary btn-sm" form="filters"><i class="bi bi-funnel me-1"></i>Filter</button>
+                            <a href="?reset" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</a>
+                        </div>
                     </th>
                 </tr>
                 <tr>
@@ -24,19 +27,22 @@
                     {% include "generic/headers/sort.html" with name="Date" field="datetime" col="4" %}
                     <th class="col-md-4"></th>
                 </tr>
+                </thead>
+                <tbody>
                 {% for gain_test in items %}
                 <tr>
                     <td class="py-1">{{ gain_test.name }}</td>
                     <td class="py-1">{{ gain_test.datetime }}</td>
                     <td>
-                        <a href="{% url 'sdr_gain_test' gain_test.id %}" class="btn btn-primary">open</a>
+                        <a href="{% url 'sdr_gain_test' gain_test.id %}" class="btn btn-primary btn-sm">open</a>
                         <form action="{% url 'sdr_delete_gain_test' gain_test.id %}" method="post" class="d-inline">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-danger" onclick="return confirm('Delete this gain test? This cannot be undone.');">Delete</button>
+                            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Delete this gain test? This cannot be undone.');">Delete</button>
                         </form>
                     </td>
                 </tr>
                 {% endfor %}
+                </tbody>
             </table>
         </div>
     </div>

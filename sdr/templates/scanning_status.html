@@ -16,7 +16,7 @@
             <span class="text-muted small">- id {{ scanner.id }} - version {{ scanner.version }} - workers {{ scanner.workers }}</span>
         </h5>
         <div class="table-responsive mb-4">
-            <table class="table table-striped table-bordered table-hover">
+            <table class="table table-hover align-middle list-table">
                 <tr>
                     <th>Device</th>
                     <th>Connected</th>
@@ -51,7 +51,7 @@
         {% empty %}
         <div class="alert alert-danger mb-3">The scanner did not answer the status request - showing what the panel has received instead.</div>
         <div class="table-responsive mb-4">
-            <table class="table table-striped table-bordered table-hover">
+            <table class="table table-hover align-middle list-table">
                 <tr>
                     <th>Device</th>
                     <th>Last data</th>
