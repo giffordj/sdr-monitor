@@ -4,8 +4,10 @@
     <input type="text" class="form-control" id="input_{{ field }}__gte" placeholder="after" name="{{ field }}__gte"{% if form_id %} form="{{ form_id }}"{% endif %}>
     <input type="text" class="form-control mt-1" id="input_{{ field }}__lte" placeholder="before" name="{{ field }}__lte"{% if form_id %} form="{{ form_id }}"{% endif %}>
     {% elif options %}
-    <input type="text" class="form-control" id="input_{{ field }}" placeholder="{{ field|humanize_field }}" name="{{ field }}"{% if form_id %} form="{{ form_id }}"{% endif %}>
-    {% include "generic/headers/filter_options.html" with form_id=form_id %}
+    <div class="filter-inline">
+        <input type="text" class="form-control" id="input_{{ field }}" placeholder="{{ field|humanize_field }}" name="{{ field }}"{% if form_id %} form="{{ form_id }}"{% endif %}>
+        {% include "generic/headers/filter_options.html" with form_id=form_id input_id="input_"|add:field %}
+    </div>
     {% else %}
     <input type="text" inputmode="decimal" class="form-control" id="input_{{ field }}" name="{{ field }}"
         placeholder="{{ field|humanize_field }}{% if unit %} ({{ unit }}){% endif %}"
