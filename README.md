@@ -42,7 +42,10 @@ See [CREDITS.md](CREDITS.md).
 The container image is built on the upstream `shajen/sdr-hub` base and adds:
 
 - **Our scanner fork** - `giffordj/rtl-sdr-scanner-cpp` at a pinned commit
-  (upstream `shajen/rtl-sdr-scanner-cpp`), built in the image.
+  (upstream `shajen/rtl-sdr-scanner-cpp`), built in the image. It is a GNU
+  Radio 3.10 C++ application; the GNU Radio runtime comes from the base image.
+  The live radio (`rtl_fm` + `sox` + `lame`) and the Django panel do not use
+  GNU Radio.
 - **librtlsdr** - built from the canonical osmocom repo
   <https://gitea.osmocom.org/sdr/rtl-sdr> at a pinned commit (upstream v2.0.3;
   the GitHub `osmocom/rtl-sdr` repo is a mirror). Soname is kept at 2 so
